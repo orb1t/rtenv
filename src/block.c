@@ -297,6 +297,7 @@ int block_init(int fd, int driver_pid, struct file *files[],
                struct memory_pool *memory_pool, struct event_monitor *monitor)
 {
     struct block *block;
+    struct event *event;
 
     block = memory_pool_alloc(memory_pool, sizeof(*block));
 
@@ -309,10 +310,10 @@ int block_init(int fd, int driver_pid, struct file *files[],
     block->buzy = 0;
     block->pos = 0;
 	block->file.ops = &block_ops;
-    block->event = event_monitor_find_free(monitor);
     files[fd] = &block->file;
 
-    event_monitor_register(monitor, block->event, block_event_release, files[fd]);
+    event = event_monitor_allocate(monitor, block_event_release, files[fd]);
+    block->event = event_monitor_find(monitor, event);
 
     return 0;
 }

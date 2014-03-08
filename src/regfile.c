@@ -296,6 +296,7 @@ int regfile_init(int fd, int driver_pid, struct file *files[],
                struct memory_pool *memory_pool, struct event_monitor *monitor)
 {
     struct regfile *regfile;
+    struct event *event;
 
     regfile = memory_pool_alloc(memory_pool, sizeof(*regfile));
 
@@ -308,10 +309,10 @@ int regfile_init(int fd, int driver_pid, struct file *files[],
     regfile->buzy = 0;
     regfile->pos = 0;
 	regfile->file.ops = &regfile_ops;
-    regfile->event = event_monitor_find_free(monitor);
     files[fd] = &regfile->file;
 
-    event_monitor_register(monitor, regfile->event, regfile_event_release, files[fd]);
+    event = event_monitor_allocate(monitor, regfile_event_release, files[fd]);
+    regfile->event = event_monitor_find(monitor, event);
 
     return 0;
 }

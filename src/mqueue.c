@@ -27,6 +27,7 @@ mq_init(int fd, int driver_pid, struct file *files[],
         struct memory_pool *memory_pool, struct event_monitor *monitor)
 {
     struct pipe_ringbuffer *pipe;
+    struct event *event;
 
     pipe = memory_pool_alloc(memory_pool, sizeof(struct pipe_ringbuffer));
 
@@ -38,11 +39,11 @@ mq_init(int fd, int driver_pid, struct file *files[],
 	pipe->file.ops = &mq_ops;
     files[fd] = &pipe->file;
 
-    pipe->read_event = event_monitor_find_free(monitor);
-    event_monitor_register(monitor, pipe->read_event, pipe_read_release, files[fd]);
+    event = event_monitor_allocate(monitor, pipe_read_release, files[fd]);
+    pipe->read_event = event_monitor_find(monitor, event);
 
-    pipe->write_event = event_monitor_find_free(monitor);
-    event_monitor_register(monitor, pipe->write_event, pipe_write_release, files[fd]);
+    event = event_monitor_allocate(monitor, pipe_write_release, files[fd]);
+    pipe->write_event = event_monitor_find(monitor, event);
     return 0;
 }
 

@@ -20,6 +20,7 @@
 #include "romdev.h"
 #include "event-monitor.h"
 #include "romfs.h"
+#include "object-pool.h"
 
 #define MAX_CMDNAME 19
 #define MAX_ARGC 19
@@ -746,8 +747,8 @@ char memory_space[MEM_LIMIT];
 struct file *files[FILE_LIMIT];
 struct file_request requests[TASK_LIMIT];
 struct list ready_list[PRIORITY_LIMIT + 1];  /* [0 ... 39] */
-struct event events[EVENT_LIMIT];
 
+DECLARE_OBJECT_POOL(struct event, events, EVENT_LIMIT);
 
 int main()
 {
@@ -779,7 +780,7 @@ int main()
 		list_init(&ready_list[i]);
 
     /* Initialise event monitor */
-    event_monitor_init(&event_monitor, events, ready_list);
+    event_monitor_init(&event_monitor, &events, ready_list);
 
 	/* Initialize fifos */
 	for (i = 0; i <= PATHSERVER_FD; i++)
