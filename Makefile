@@ -6,7 +6,7 @@ CC := $(CROSS_COMPILE)gcc
 CFLAGS = -fno-common -ffreestanding -O0 \
          -gdwarf-2 -g3 -Wall -Werror \
          -mcpu=cortex-m3 -mthumb \
-         -Wl,-Tmain.ld -nostartfiles \
+         -Wl,-T$(TARGET).ld -nostartfiles \
          -DUSER_NAME=\"$(USER)\"
 
 ARCH = CM3
@@ -55,10 +55,11 @@ $(OUTDIR)/$(TARGET).lst: $(OUTDIR)/$(TARGET).elf
 	@echo "    LIST    "$@
 	@$(CROSS_COMPILE)objdump -S $< > $@
 
-$(OUTDIR)/$(TARGET).elf: $(OBJ) $(DAT)
+$(OUTDIR)/$(TARGET).elf: $(OBJ) $(DAT) $(TARGET).ld
 	@echo "    LD      "$@
 	@echo "    MAP     "$(OUTDIR)/$(TARGET).map
-	@$(CROSS_COMPILE)gcc $(CFLAGS) -Wl,-Map=$(OUTDIR)/$(TARGET).map -o $@ $^
+	@$(CROSS_COMPILE)gcc $(CFLAGS) -Wl,-Map=$(OUTDIR)/$(TARGET).map -o $@ \
+		$(OBJ) $(DAT)
 
 $(OUTDIR)/%.o: %.c
 	@mkdir -p $(dir $@)
