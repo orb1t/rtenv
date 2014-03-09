@@ -19,6 +19,7 @@ static struct file_operations regfile_ops = {
 	.lseek = regfile_lseek,
 };
 
+DECLARE_OBJECT_POOL(struct regfile, regfiles, REGFILE_LIMIT);
 
 int regfile_driver_readable (struct regfile *regfile, struct file_request *request,
                            struct event_monitor *monitor)
@@ -298,7 +299,7 @@ int regfile_init(int fd, int driver_pid, struct file *files[],
     struct regfile *regfile;
     struct event *event;
 
-    regfile = memory_pool_alloc(memory_pool, sizeof(*regfile));
+    regfile = object_pool_allocate(&regfiles);
 
     if (!regfile)
         return -1;

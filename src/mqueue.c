@@ -15,6 +15,8 @@ static struct file_operations mq_ops = {
 	.lseek = NULL,
 };
 
+DECLARE_OBJECT_POOL(struct pipe_ringbuffer, mqueues, MQUEUE_LIMIT);
+
 int mq_open(const char *name, int oflag)
 {
 	if (oflag & O_CREAT)
@@ -29,7 +31,7 @@ mq_init(int fd, int driver_pid, struct file *files[],
     struct pipe_ringbuffer *pipe;
     struct event *event;
 
-    pipe = memory_pool_alloc(memory_pool, sizeof(struct pipe_ringbuffer));
+    pipe = object_pool_allocate(&mqueues);
 
     if (!pipe)
         return -1;

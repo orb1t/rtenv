@@ -4,6 +4,7 @@
 #include "string.h"
 #include "syscall.h"
 #include "file.h"
+#include "object-pool.h"
 
 struct block_response {
     int transfer_len;
@@ -19,6 +20,7 @@ static struct file_operations block_ops = {
 	.lseek = block_lseek,
 };
 
+DECLARE_OBJECT_POOL(struct block, blocks, BLOCK_LIMIT);
 
 int block_driver_readable (struct block *block, struct file_request *request,
                            struct event_monitor *monitor)
@@ -299,7 +301,7 @@ int block_init(int fd, int driver_pid, struct file *files[],
     struct block *block;
     struct event *event;
 
-    block = memory_pool_alloc(memory_pool, sizeof(*block));
+    block = object_pool_allocate(&blocks);
 
     if (!block)
         return -1;

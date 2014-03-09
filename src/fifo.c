@@ -14,6 +14,8 @@ static struct file_operations fifo_ops = {
 	.lseek = NULL,
 };
 
+DECLARE_OBJECT_POOL(struct pipe_ringbuffer, fifos, FIFO_LIMIT);
+
 int mkfifo(const char *pathname, int mode)
 {
 	mkfile(pathname, mode, S_IFIFO);
@@ -27,7 +29,7 @@ fifo_init(int fd, int driver_pid, struct file *files[],
     struct pipe_ringbuffer *pipe;
     struct event *event;
 
-    pipe = memory_pool_alloc(memory_pool, sizeof(struct pipe_ringbuffer));
+    pipe = object_pool_allocate(&fifos);
 
     if (!pipe)
         return -1;

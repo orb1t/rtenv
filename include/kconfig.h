@@ -5,22 +5,31 @@
 #define TASK_LIMIT 8  /* Max number of tasks we can handle */
 #define STACK_SIZE 384 /* Size of task stacks in words */
 
+/* FIFO file */
+#define FIFO_LIMIT_RESERVED (3 + TASK_LIMIT + 1)
+#define FIFO_LIMIT_FREE 2
+#define FIFO_LIMIT (FIFO_LIMIT_RESERVED + FIFO_LIMIT_FREE)
+
+/* Message Queue */
+#define MQUEUE_LIMIT 2
+
 /* Pipe file */
-#define PIPE_LIMIT (TASK_LIMIT * 2)
+#define PIPE_LIMIT (FIFO_LIMIT + MQUEUE_LIMIT)
 #define PIPE_BUF   64 /* Size of largest atomic pipe message */
 
 /* Block device */
+#define BLOCK_LIMIT 1
 #define BLOCK_BUF 64
 
 /* Regular file */
+#define REGFILE_LIMIT 6
 #define REGFILE_BUF 64
 
 /* General file */
-#define FREG_LIMIT 16 /* Other types file limit */
-#define FILE_LIMIT (PIPE_LIMIT + FREG_LIMIT)
+#define FILE_LIMIT (PIPE_LIMIT + BLOCK_LIMIT + REGFILE_LIMIT)
 
 /* Memory pool */
-#define MEM_LIMIT (2048)
+#define MEM_LIMIT 0x000
 
 /* Path server */
 #define PATH_MAX   32 /* Longest absolute path */
@@ -38,7 +47,9 @@
 #define INTR_LIMIT 58 /* IRQn = [-15 ... 42] */
 
 /* Event */
-#define EVENT_LIMIT (FILE_LIMIT * 2 + INTR_LIMIT + 1)
+#define EVENT_LIMIT_RESERVED (INTR_LIMIT + PIPE_LIMIT * 2 + BLOCK_LIMIT + REGFILE_LIMIT)
+#define EVENT_LIMIT_FREE 4
+#define EVENT_LIMIT (EVENT_LIMIT_RESERVED + EVENT_LIMIT_FREE)
     /* Read and write event for each file, intr events and time event */
 
 /* Scheduling */
