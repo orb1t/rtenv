@@ -1,6 +1,7 @@
 #include "event-monitor.h"
 
 #include "list.h"
+#include "bitmap.h"
 
 
 void event_monitor_init(struct event_monitor *monitor,
@@ -14,7 +15,7 @@ void event_monitor_init(struct event_monitor *monitor,
     monitor->ready_list = ready_list;
 
     for (i = 0; i < monitor->events->num; i++) {
-        data[i].pending = 0;
+        bitmap_clear(monitor->pending, i);
         data[i].handler = 0;
         data[i].data = 0;
         list_init(&data[i].list);
@@ -68,7 +69,7 @@ void event_monitor_release(struct event_monitor *monitor, int event_id)
     struct event *event = object_pool_get(monitor->events, event_id);
 
     if (event)
-        event->pending = 1;
+        bitmap_set(monitor->pending, event_id);
 }
 
 void event_monitor_serve(struct event_monitor *monitor)
@@ -77,7 +78,7 @@ void event_monitor_serve(struct event_monitor *monitor)
 
     int i;
     for (i = 0; i < monitor->events->num; i++) {
-        if (events[i].pending) {
+        if (bitmap_test(monitor->pending, i)) {
             struct event *event = &events[i];
             struct task_control_block *task;
             struct list *curr, *next;
@@ -91,7 +92,7 @@ void event_monitor_serve(struct event_monitor *monitor)
                 }
             }
 
-            event->pending = 0;
+            bitmap_clear(monitor->pending, i);
 
             /* If someone pending events, rescan events */
             i = 0;

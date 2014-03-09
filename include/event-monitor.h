@@ -13,8 +13,6 @@ typedef int (*event_monitor_handler)(struct event_monitor *monitor,
                                      void *data);
 
 struct event {
-    int registerd;
-    int pending;
     event_monitor_handler handler;
     void *data;
     struct list list;
@@ -22,6 +20,7 @@ struct event {
 
 struct event_monitor {
     struct object_pool *events;
+    DECLARE_BITMAP(pending, EVENT_LIMIT);
     struct list *ready_list;
 };
 
