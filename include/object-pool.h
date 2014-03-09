@@ -1,12 +1,10 @@
 #ifndef OBJECT_POOL_H
 #define OBJECT_POOL_H
 
-#define bitsof(type) (sizeof(type) * 8)
-
-#define div_ceiling(a, b) ((a) / (b) + ((a) % (b) != 0))
+#include "bitmap.h"
 
 #define DECLARE_OBJECT_POOL(type, _name, _num) \
-    int _object_pool_##_name##_bitmap[div_ceiling(_num, bitsof(int))]; \
+    DECLARE_BITMAP(_object_pool_##_name##_bitmap, _num); \
     type _object_pool_##_name##_data[_num]; \
     struct object_pool _name = { \
         .name = #_name, \
