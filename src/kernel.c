@@ -101,6 +101,15 @@ void serialout(USART_TypeDef* uart, unsigned int intr)
 	mkfifo("/dev/tty0/out", 0);
 	fd = open("/dev/tty0/out", 0);
 
+	if (fd < 0) {
+	    const char *p = "Can not open tty0 :-(\n";
+	    while (*p) {
+	        while (USART_GetFlagStatus(uart, USART_FLAG_TXE) == RESET);
+			USART_SendData(uart, *p++);
+		}
+		while (1);
+	}
+
 	while (1) {
 		if (doread)
 			read(fd, &c, 1);
