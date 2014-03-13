@@ -56,4 +56,7 @@
 #define PRIORITY_DEFAULT 20
 #define PRIORITY_LIMIT (PRIORITY_DEFAULT * 2 - 1)
 
+/* Task statistic hook (with debugger) */
+#define USE_TASK_STAT_HOOK 1
+
 #endif

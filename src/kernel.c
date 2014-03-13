@@ -22,6 +22,10 @@
 #include "romfs.h"
 #include "object-pool.h"
 
+#ifdef USE_TASK_STAT_HOOK
+#include "task-stat-hook.h"
+#endif /* USE_TASK_STAT_HOOK */
+
 #define MAX_CMDNAME 19
 #define MAX_ARGC 19
 #define MAX_CMDHELP 1023
@@ -813,6 +817,10 @@ int main()
 		tasks[current_task].stack = activate(tasks[current_task].stack);
 		tasks[current_task].status = TASK_READY;
 		timeup = 0;
+
+#ifdef USE_TASK_STAT_HOOK
+		task_stat_hook(tasks, current_task);
+#endif /* USE_TASK_STAT_HOOK */
 
 		switch (tasks[current_task].stack->r7) {
 		case 0x1: /* fork */
