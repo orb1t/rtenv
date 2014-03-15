@@ -807,6 +807,8 @@ int main()
 
     /* Initialize first thread */
 	tasks[task_count].stack = (void*)init_task(stacks[task_count], &first);
+	tasks[task_count].stack_start = stacks[task_count];
+	tasks[task_count].stack_end = stacks[task_count + 1];
 	tasks[task_count].pid = 0;
 	tasks[task_count].priority = PRIORITY_DEFAULT;
 	list_init(&tasks[task_count].list);
@@ -834,6 +836,8 @@ int main()
 					      - (unsigned int*)tasks[current_task].stack;
 				/* New stack is END - used */
 				tasks[task_count].stack = (void*)(stacks[task_count] + STACK_SIZE - used);
+	            tasks[task_count].stack_start = stacks[task_count];
+	            tasks[task_count].stack_end = stacks[task_count + 1];
 				/* Copy only the used part of the stack */
 				memcpy(tasks[task_count].stack, tasks[current_task].stack,
 				       used * sizeof(unsigned int));

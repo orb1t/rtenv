@@ -36,6 +36,8 @@ struct user_thread_stack {
 /* Task Control Block */
 struct task_control_block {
     struct user_thread_stack *stack;
+    unsigned int *stack_start;
+    unsigned int *stack_end;
     int pid;
     int status;
     int priority;
