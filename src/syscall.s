@@ -83,3 +83,11 @@ lseek:
 	nop
 	pop {r7}
 	bx lr
+.global setrlimit
+setrlimit:
+	push {r7}
+	mov r7, #0xb
+	svc 0
+	nop
+	pop {r7}
+	bx lr

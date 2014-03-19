@@ -1,4 +1,5 @@
 #include <stddef.h>
+#include "resource.h"
 
 void *activate(void *stack);
 
@@ -18,3 +19,5 @@ int mknod(int fd, int mode, int dev);
 void sleep(unsigned int);
 
 void lseek(int fd, int offset, int whence);
+
+int setrlimit(int resource, const struct rlimit *rlp);

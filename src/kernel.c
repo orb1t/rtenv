@@ -940,6 +940,29 @@ int main()
 			        tasks[current_task].stack->r0 = -1;
 			    }
 			} break;
+		case 0xb: /* setrlimit */
+		    {
+		        task = &tasks[current_task];
+		        unsigned int resource = task->stack->r0;
+		        if (resource == RLIMIT_STACK) {
+		            struct rlimit *rlimit = (void*)task->stack->r1;
+		            size_t used = (void*)task->stack_end - (void*)task->stack;
+		            size_t size = rlimit->rlim_cur;
+		            stack = stack_pool_relocate(&stack_pool, &size,
+		                                        task->stack_start);
+		            if (stack) {
+		                task->stack_start = stack->data;
+		                task->stack_end = stack->data + size;
+		                task->stack = (void*)task->stack_end - used;
+		            }
+		            else {
+		                tasks[current_task].stack->r0 = -1;
+		            }
+		        }
+		        else {
+		            tasks[current_task].stack->r0 = -1;
+		        }
+		    } break;
 		default: /* Catch all interrupts */
 			if ((int)tasks[current_task].stack->r7 < 0) {
 				unsigned int intr = -tasks[current_task].stack->r7 - 16;
