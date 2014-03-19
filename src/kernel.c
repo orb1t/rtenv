@@ -22,6 +22,7 @@
 #include "romfs.h"
 #include "object-pool.h"
 #include "serial.h"
+#include "stack-pool.h"
 
 #ifdef USE_TASK_STAT_HOOK
 #include "task-stat-hook.h"
@@ -706,8 +707,12 @@ int time_release(struct event_monitor *monitor, int event,
     return task->stack->r0 == *tick_count;
 }
 
+struct stack {
+    unsigned int data [STACK_SIZE];
+};
+
 /* System resources */
-unsigned int stacks[TASK_LIMIT][STACK_SIZE];
+DECLARE_OBJECT_POOL(struct stack, stacks, STACK_LIMIT);
 char memory_space[MEM_LIMIT];
 struct file *files[FILE_LIMIT];
 struct file_request requests[TASK_LIMIT];
@@ -718,6 +723,7 @@ DECLARE_OBJECT_POOL(struct event, events, EVENT_LIMIT);
 int main()
 {
 	//struct task_control_block tasks[TASK_LIMIT];
+	struct stack_pool stack_pool;
 	struct memory_pool memory_pool;
 	struct event_monitor event_monitor;
 	//size_t task_count = 0;
@@ -727,11 +733,15 @@ int main()
 	struct task_control_block *task;
 	int timeup;
 	unsigned int tick_count = 0;
+	struct stack *stack;
 
 	SysTick_Config(configCPU_CLOCK_HZ / configTICK_RATE_HZ);
 
 	init_rs232();
 	__enable_irq();
+
+	/* Initialize stack */
+	stack_pool_init(&stack_pool, &stacks);
 
     /* Initialize memory pool */
     memory_pool_init(&memory_pool, MEM_LIMIT, memory_space);
@@ -758,9 +768,10 @@ int main()
 	event_monitor_register(&event_monitor, TIME_EVENT, time_release, &tick_count);
 
     /* Initialize first thread */
-	tasks[task_count].stack = (void*)init_task(stacks[task_count], &first);
-	tasks[task_count].stack_start = stacks[task_count];
-	tasks[task_count].stack_end = stacks[task_count + 1];
+    stack = stack_pool_allocate(&stack_pool, STACK_SIZE);
+	tasks[task_count].stack = (void*)init_task(stack->data, &first);
+	tasks[task_count].stack_start = stack->data;
+	tasks[task_count].stack_end = stack->data + STACK_SIZE;
 	tasks[task_count].pid = 0;
 	tasks[task_count].priority = PRIORITY_DEFAULT;
 	list_init(&tasks[task_count].list);
@@ -784,12 +795,13 @@ int main()
 			}
 			else {
 				/* Compute how much of the stack is used */
-				size_t used = stacks[current_task] + STACK_SIZE
+				size_t used = tasks[current_task].stack_end
 					      - (unsigned int*)tasks[current_task].stack;
 				/* New stack is END - used */
-				tasks[task_count].stack = (void*)(stacks[task_count] + STACK_SIZE - used);
-	            tasks[task_count].stack_start = stacks[task_count];
-	            tasks[task_count].stack_end = stacks[task_count + 1];
+                stack = stack_pool_allocate(&stack_pool, STACK_SIZE);
+				tasks[task_count].stack = (void*)(stack + STACK_SIZE - used);
+	            tasks[task_count].stack_start = stack->data;
+	            tasks[task_count].stack_end = stack->data + STACK_SIZE;
 				/* Copy only the used part of the stack */
 				memcpy(tasks[task_count].stack, tasks[current_task].stack,
 				       used * sizeof(unsigned int));

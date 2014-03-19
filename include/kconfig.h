@@ -3,6 +3,9 @@
 
 /* Task */
 #define TASK_LIMIT 8  /* Max number of tasks we can handle */
+
+/* Stack Chunk */
+#define STACK_LIMIT TASK_LIMIT
 #define STACK_SIZE 384 /* Size of task stacks in words */
 
 /* FIFO file */
