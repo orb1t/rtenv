@@ -2,12 +2,13 @@
 #define KCONFIG_H
 
 /* Task */
-#define TASK_LIMIT 8  /* Max number of tasks we can handle */
+#define TASK_LIMIT 10  /* Max number of tasks we can handle */
 #define STACK_DEFAULT_SIZE 512
 
 /* Stack Chunk */
-#define STACK_LIMIT TASK_LIMIT * 3
+#define STACK_TOTAL 0x3000
 #define STACK_CHUNK_SIZE 512
+#define STACK_LIMIT (STACK_TOTAL / STACK_CHUNK_SIZE)
 
 /* FIFO file */
 #define FIFO_LIMIT_RESERVED (3 + TASK_LIMIT + 1)
