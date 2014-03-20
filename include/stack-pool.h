@@ -5,6 +5,10 @@
 #include "kconfig.h"
 #include "object-pool.h"
 
+struct stack {
+    unsigned int data [STACK_DEFAULT_SIZE];
+};
+
 struct stack_pool {
     struct object_pool *stacks;
     int sizes[STACK_LIMIT];

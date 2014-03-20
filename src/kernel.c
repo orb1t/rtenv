@@ -742,10 +742,6 @@ int time_release(struct event_monitor *monitor, int event,
     return task->stack->r0 == *tick_count;
 }
 
-struct stack {
-    unsigned int data [STACK_DEFAULT_SIZE];
-};
-
 /* System resources */
 DECLARE_OBJECT_POOL(struct stack, stacks, STACK_LIMIT);
 char memory_space[MEM_LIMIT];
