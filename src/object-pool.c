@@ -14,7 +14,7 @@ void object_pool_init(struct object_pool *pool)
     }
 }
 
-void* object_pool_register(struct object_pool *pool, int n)
+void *object_pool_register(struct object_pool *pool, int n)
 {
     if (n < 0 || n >= pool->num)
         return NULL;
@@ -26,7 +26,7 @@ void* object_pool_register(struct object_pool *pool, int n)
     return pool->data + pool->size * n;
 }
 
-void* object_pool_allocate(struct object_pool *pool)
+void *object_pool_allocate(struct object_pool *pool)
 {
     int *mapped = bitmap_addr(pool->bitmap, 0);
     int i;
@@ -52,7 +52,7 @@ int object_pool_find(struct object_pool *pool, void *object)
     return n;
 }
 
-void* object_pool_get(struct object_pool *pool, int n)
+void *object_pool_get(struct object_pool *pool, int n)
 {
     if (n < 0 || n > pool->num)
         return NULL;

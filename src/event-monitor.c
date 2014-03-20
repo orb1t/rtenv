@@ -22,7 +22,7 @@ void event_monitor_init(struct event_monitor *monitor,
     }
 }
 
-struct event* event_monitor_register(struct event_monitor *monitor, int n,
+struct event *event_monitor_register(struct event_monitor *monitor, int n,
                                      event_monitor_handler handler, void *data)
 {
     struct event *event = object_pool_register(monitor->events, n);
@@ -35,7 +35,7 @@ struct event* event_monitor_register(struct event_monitor *monitor, int n,
     return event;
 }
 
-struct event* event_monitor_allocate(struct event_monitor *monitor,
+struct event *event_monitor_allocate(struct event_monitor *monitor,
                                      event_monitor_handler handler, void *data)
 {
     struct event *event = object_pool_allocate(monitor->events);
@@ -83,10 +83,10 @@ void event_monitor_serve(struct event_monitor *monitor)
             struct task_control_block *task;
             struct list *curr, *next;
 
-            list_for_each_safe (curr, next, &event->list) {
+            list_for_each_safe(curr, next, &event->list) {
                 task = list_entry(curr, struct task_control_block, list);
                 if (event->handler
-                        && event->handler(monitor, i, task, event->data)) {
+                    && event->handler(monitor, i, task, event->data)) {
                     list_push(&monitor->ready_list[task->priority], &task->list);
                     task->status = TASK_READY;
                 }

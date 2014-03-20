@@ -27,7 +27,8 @@ struct entry {
     uint8_t name[PATH_LEN + 1];
 };
 
-size_t fwrite_off(const void *ptr, size_t size, size_t nmemb, FILE *stream, off_t off)
+size_t fwrite_off(const void *ptr, size_t size, size_t nmemb, FILE *stream,
+                  off_t off)
 {
     fseek(stream, off, SEEK_SET);
     return fwrite(ptr, size, nmemb, stream);
@@ -85,7 +86,7 @@ int procdir(const char *dirname, char *fullpath, FILE *outfile)
         this_entry = next_entry;
 
         entry.prev = prev_entry;
-        strncpy((void*)entry.name, direntry->d_name, PATH_LEN);
+        strncpy((void *)entry.name, direntry->d_name, PATH_LEN);
 
         strcpy(fullpath + fullpath_len, direntry->d_name);
 
@@ -123,7 +124,7 @@ int procdir(const char *dirname, char *fullpath, FILE *outfile)
     return next_entry;
 }
 
-int main (int argc, char *argv[])
+int main(int argc, char *argv[])
 {
     int c;
     FILE *outfile;
@@ -133,22 +134,22 @@ int main (int argc, char *argv[])
 
     while ((c = getopt(argc, argv, "o:d:")) != -1) {
         switch (c) {
-            case 'd':
-                if (optarg)
-                    dirname = optarg;
-                else
-                    error(ERR(NO_DIR), EINVAL,
-                          "-d option need a input directory.\n");
-                break;
-            case 'o':
-                if (optarg)
-                    outname = optarg;
-                else
-                    error(ERR(NO_OUT), EINVAL,
-                          "-o option need a output file name.\n");
-                break;
-            default:
-                ;
+        case 'd':
+            if (optarg)
+                dirname = optarg;
+            else
+                error(ERR(NO_DIR), EINVAL,
+                      "-d option need a input directory.\n");
+            break;
+        case 'o':
+            if (optarg)
+                outname = optarg;
+            else
+                error(ERR(NO_OUT), EINVAL,
+                      "-o option need a output file name.\n");
+            break;
+        default:
+            ;
         }
     }
 

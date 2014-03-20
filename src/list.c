@@ -1,6 +1,6 @@
 #include "list.h"
 
-void list_init(struct list* list)
+void list_init(struct list *list)
 {
     if (list) {
         list->prev = list;
@@ -47,7 +47,7 @@ void list_push(struct list *list, struct list *new)
     }
 }
 
-struct list* list_shift(struct list *list)
+struct list *list_shift(struct list *list)
 {
     struct list *first = list->next;
 

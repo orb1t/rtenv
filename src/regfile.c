@@ -11,35 +11,18 @@ struct regfile_response {
 };
 
 static struct file_operations regfile_ops = {
-	.readable = regfile_readable,
-	.writable = regfile_writable,
-	.read = regfile_read,
-	.write = regfile_write,
-	.lseekable = regfile_lseekable,
-	.lseek = regfile_lseek,
+    .readable = regfile_readable,
+    .writable = regfile_writable,
+    .read = regfile_read,
+    .write = regfile_write,
+    .lseekable = regfile_lseekable,
+    .lseek = regfile_lseek,
 };
 
 DECLARE_OBJECT_POOL(struct regfile, regfiles, REGFILE_LIMIT);
 
-int regfile_driver_readable (struct regfile *regfile, struct file_request *request,
-                           struct event_monitor *monitor)
-{
-    if (regfile->buzy)
-        return FILE_ACCESS_ACCEPT;
-    else
-        return FILE_ACCESS_ERROR;
-}
-
-int regfile_driver_writable (struct regfile *regfile, struct file_request *request,
-                           struct event_monitor *monitor)
-{
-    if (regfile->buzy)
-        return FILE_ACCESS_ACCEPT;
-    else
-        return FILE_ACCESS_ERROR;
-}
-
-int regfile_driver_lseekable (struct regfile *regfile, struct file_request *request,
+int regfile_driver_readable(struct regfile *regfile,
+                            struct file_request *request,
                             struct event_monitor *monitor)
 {
     if (regfile->buzy)
@@ -48,8 +31,28 @@ int regfile_driver_lseekable (struct regfile *regfile, struct file_request *requ
         return FILE_ACCESS_ERROR;
 }
 
-int regfile_driver_read (struct regfile *regfile, struct file_request *request,
-                       struct event_monitor *monitor)
+int regfile_driver_writable(struct regfile *regfile,
+                            struct file_request *request,
+                            struct event_monitor *monitor)
+{
+    if (regfile->buzy)
+        return FILE_ACCESS_ACCEPT;
+    else
+        return FILE_ACCESS_ERROR;
+}
+
+int regfile_driver_lseekable(struct regfile *regfile,
+                             struct file_request *request,
+                             struct event_monitor *monitor)
+{
+    if (regfile->buzy)
+        return FILE_ACCESS_ACCEPT;
+    else
+        return FILE_ACCESS_ERROR;
+}
+
+int regfile_driver_read(struct regfile *regfile, struct file_request *request,
+                        struct event_monitor *monitor)
 {
     int size = request->size;
     if (size > REGFILE_BUF)
@@ -61,8 +64,8 @@ int regfile_driver_read (struct regfile *regfile, struct file_request *request,
     return size;
 }
 
-int regfile_driver_write (struct regfile *regfile, struct file_request *request,
-                        struct event_monitor *monitor)
+int regfile_driver_write(struct regfile *regfile, struct file_request *request,
+                         struct event_monitor *monitor)
 {
     char *data_buf = request->buf;
     int len = request->size;
@@ -74,16 +77,16 @@ int regfile_driver_write (struct regfile *regfile, struct file_request *request,
     }
     regfile->transfer_len = len;
     regfile->buzy = 0;
-	event_monitor_release(monitor, regfile->event);
+    event_monitor_release(monitor, regfile->event);
     return len;
 }
 
-int regfile_driver_lseek (struct regfile *regfile, struct file_request *request,
-                        struct event_monitor *monitor)
+int regfile_driver_lseek(struct regfile *regfile, struct file_request *request,
+                         struct event_monitor *monitor)
 {
     regfile->transfer_len = request->size;
     regfile->buzy = 0;
-	event_monitor_release(monitor, regfile->event);
+    event_monitor_release(monitor, regfile->event);
     return request->size;
 }
 
@@ -96,8 +99,9 @@ int regfile_driver_lseek (struct regfile *regfile, struct file_request *request,
  *  5. Get transfer_len
  *  6. Read data from buffer
  */
-int regfile_request_readable (struct regfile *regfile, struct file_request *request,
-                            struct event_monitor *monitor)
+int regfile_request_readable(struct regfile *regfile,
+                             struct file_request *request,
+                             struct event_monitor *monitor)
 {
     struct task_control_block *task = request->task;
 
@@ -118,7 +122,7 @@ int regfile_request_readable (struct regfile *regfile, struct file_request *requ
 
         struct file_request file_request = {
             .task = NULL,
-            .buf = (char *)&fs_request,
+            .buf = (char *) &fs_request,
             .size = sizeof(fs_request),
         };
         if (file_write(driver, &file_request, monitor) == 1) {
@@ -130,7 +134,7 @@ int regfile_request_readable (struct regfile *regfile, struct file_request *requ
         return FILE_ACCESS_ACCEPT;
     }
 
-	event_monitor_block(monitor, regfile->event, task);
+    event_monitor_block(monitor, regfile->event, task);
     return FILE_ACCESS_BLOCK;
 }
 
@@ -144,8 +148,9 @@ int regfile_request_readable (struct regfile *regfile, struct file_request *requ
  *  6. Driver write empty data to buffer
  *  7. Get transfer_len
  */
-int regfile_request_writable (struct regfile *regfile, struct file_request *request,
-                            struct event_monitor *monitor)
+int regfile_request_writable(struct regfile *regfile,
+                             struct file_request *request,
+                             struct event_monitor *monitor)
 {
     struct task_control_block *task = request->task;
 
@@ -166,7 +171,7 @@ int regfile_request_writable (struct regfile *regfile, struct file_request *requ
 
         struct file_request file_request = {
             .task = NULL,
-            .buf = (char *)&fs_request,
+            .buf = (char *) &fs_request,
             .size = sizeof(fs_request),
         };
 
@@ -182,12 +187,13 @@ int regfile_request_writable (struct regfile *regfile, struct file_request *requ
         return FILE_ACCESS_ACCEPT;
     }
 
-	event_monitor_block(monitor, regfile->event, task);
+    event_monitor_block(monitor, regfile->event, task);
     return FILE_ACCESS_BLOCK;
 }
 
-int regfile_request_lseekable (struct regfile *regfile, struct file_request *request,
-                             struct event_monitor *monitor)
+int regfile_request_lseekable(struct regfile *regfile,
+                              struct file_request *request,
+                              struct event_monitor *monitor)
 {
     struct task_control_block *task = request->task;
 
@@ -199,18 +205,18 @@ int regfile_request_lseekable (struct regfile *regfile, struct file_request *req
             size = REGFILE_BUF;
 
         int pos;
-        switch(request->whence) {
-            case SEEK_SET:
-                pos = 0;
-                break;
-            case SEEK_CUR:
-                pos = regfile->pos;
-                break;
-            case SEEK_END:
-                pos = -1;
-                break;
-            default:
-                return FILE_ACCESS_ERROR;
+        switch (request->whence) {
+        case SEEK_SET:
+            pos = 0;
+            break;
+        case SEEK_CUR:
+            pos = regfile->pos;
+            break;
+        case SEEK_END:
+            pos = -1;
+            break;
+        default:
+            return FILE_ACCESS_ERROR;
         }
 
         struct fs_request fs_request = {
@@ -223,7 +229,7 @@ int regfile_request_lseekable (struct regfile *regfile, struct file_request *req
 
         struct file_request file_request = {
             .task = NULL,
-            .buf = (char *)&fs_request,
+            .buf = (char *) &fs_request,
             .size = sizeof(fs_request),
         };
 
@@ -236,12 +242,12 @@ int regfile_request_lseekable (struct regfile *regfile, struct file_request *req
         return FILE_ACCESS_ACCEPT;
     }
 
-	event_monitor_block(monitor, regfile->event, task);
+    event_monitor_block(monitor, regfile->event, task);
     return FILE_ACCESS_BLOCK;
 }
 
-int regfile_request_read (struct regfile *regfile, struct file_request *request,
-                        struct event_monitor *monitor)
+int regfile_request_read(struct regfile *regfile, struct file_request *request,
+                         struct event_monitor *monitor)
 {
     if (regfile->transfer_len > 0) {
         memcpy(request->buf, regfile->buf, regfile->transfer_len);
@@ -253,8 +259,9 @@ int regfile_request_read (struct regfile *regfile, struct file_request *request,
     return regfile->transfer_len;
 }
 
-int regfile_request_write (struct regfile *regfile, struct file_request *request,
-                         struct event_monitor *monitor)
+int regfile_request_write(struct regfile *regfile,
+                          struct file_request *request,
+                          struct event_monitor *monitor)
 {
     if (regfile->transfer_len > 0) {
         regfile->pos += regfile->transfer_len;
@@ -264,8 +271,9 @@ int regfile_request_write (struct regfile *regfile, struct file_request *request
     return regfile->transfer_len;
 }
 
-int regfile_request_lseek (struct regfile *regfile, struct file_request *request,
-                         struct event_monitor *monitor)
+int regfile_request_lseek(struct regfile *regfile,
+                          struct file_request *request,
+                          struct event_monitor *monitor)
 {
     if (regfile->transfer_len >= 0) {
         regfile->pos = regfile->transfer_len;
@@ -276,25 +284,25 @@ int regfile_request_lseek (struct regfile *regfile, struct file_request *request
 }
 
 int regfile_event_release(struct event_monitor *monitor, int event,
-                        struct task_control_block *task, void *data)
+                          struct task_control_block *task, void *data)
 {
     struct file *file = data;
-    struct file_request *request = (void*)task->stack->r0;
+    struct file_request *request = (void *)task->stack->r0;
 
     switch (task->stack->r7) {
-        case 0x04:
-            return file_read(file, request, monitor);
-        case 0x03:
-            return file_write(file, request, monitor);
-        case 0x0a:
-            return file_lseek(file, request, monitor);
-        default:
-            return 0;
+    case 0x04:
+        return file_read(file, request, monitor);
+    case 0x03:
+        return file_write(file, request, monitor);
+    case 0x0a:
+        return file_lseek(file, request, monitor);
+    default:
+        return 0;
     }
 }
 
 int regfile_init(int fd, int driver_pid, struct file *files[],
-               struct memory_pool *memory_pool, struct event_monitor *monitor)
+                 struct memory_pool *memory_pool, struct event_monitor *monitor)
 {
     struct regfile *regfile;
     struct event *event;
@@ -309,7 +317,7 @@ int regfile_init(int fd, int driver_pid, struct file *files[],
     regfile->request_pid = 0;
     regfile->buzy = 0;
     regfile->pos = 0;
-	regfile->file.ops = &regfile_ops;
+    regfile->file.ops = &regfile_ops;
     files[fd] = &regfile->file;
 
     event = event_monitor_allocate(monitor, regfile_event_release, files[fd]);
@@ -327,8 +335,8 @@ int regfile_response(int fd, char *buf, int len)
     return write(fd, &response, sizeof(response));
 }
 
-int regfile_readable (struct file *file, struct file_request *request,
-                    struct event_monitor *monitor)
+int regfile_readable(struct file *file, struct file_request *request,
+                     struct event_monitor *monitor)
 {
     struct regfile *regfile = container_of(file, struct regfile, file);
     if (regfile->driver_pid == request->task->pid) {
@@ -339,8 +347,8 @@ int regfile_readable (struct file *file, struct file_request *request,
     }
 }
 
-int regfile_writable (struct file *file, struct file_request *request,
-                    struct event_monitor *monitor)
+int regfile_writable(struct file *file, struct file_request *request,
+                     struct event_monitor *monitor)
 {
     struct regfile *regfile = container_of(file, struct regfile, file);
     if (regfile->driver_pid == request->task->pid) {
@@ -351,8 +359,8 @@ int regfile_writable (struct file *file, struct file_request *request,
     }
 }
 
-int regfile_read (struct file *file, struct file_request *request,
-                struct event_monitor *monitor)
+int regfile_read(struct file *file, struct file_request *request,
+                 struct event_monitor *monitor)
 {
     struct regfile *regfile = container_of(file, struct regfile, file);
     if (regfile->driver_pid == request->task->pid) {
@@ -363,8 +371,8 @@ int regfile_read (struct file *file, struct file_request *request,
     }
 }
 
-int regfile_write (struct file *file, struct file_request *request,
-                 struct event_monitor *monitor)
+int regfile_write(struct file *file, struct file_request *request,
+                  struct event_monitor *monitor)
 {
     struct regfile *regfile = container_of(file, struct regfile, file);
     if (regfile->driver_pid == request->task->pid) {
@@ -375,8 +383,8 @@ int regfile_write (struct file *file, struct file_request *request,
     }
 }
 
-int regfile_lseekable (struct file *file, struct file_request *request,
-                     struct event_monitor *monitor)
+int regfile_lseekable(struct file *file, struct file_request *request,
+                      struct event_monitor *monitor)
 {
     struct regfile *regfile = container_of(file, struct regfile, file);
 
@@ -388,8 +396,8 @@ int regfile_lseekable (struct file *file, struct file_request *request,
     }
 }
 
-int regfile_lseek (struct file *file, struct file_request *request,
-                 struct event_monitor *monitor)
+int regfile_lseek(struct file *file, struct file_request *request,
+                  struct event_monitor *monitor)
 {
     struct regfile *regfile = container_of(file, struct regfile, file);
 
