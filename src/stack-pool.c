@@ -83,9 +83,10 @@ void *stack_pool_relocate(struct stack_pool *pool, size_t *size, void *stack)
         int start = 0;
         int end = 0;
         while (end < stacks->num && end - start < num) {
-            if ((old_start <= end && end < old_end) || bitmap[end++]) {
-                start = end;
+            if ((old_start <= end && end < old_end) || bitmap[end]) {
+                start = end + 1;
             }
+            end++;
         }
 
         /* Allocate and record size */
@@ -99,17 +100,17 @@ void *stack_pool_relocate(struct stack_pool *pool, size_t *size, void *stack)
             /* Move data */
             end = start + num;
             if (end != old_end) {
-                unsigned int *end_addr;
-                unsigned int *old_end_addr;
-                unsigned int *old_start_addr;
-                end_addr = stacks->data + stacks->size * (end - 1);
-                old_end_addr = stacks->data + stacks->size * (old_end - 1);
+                void *end_addr;
+                void *old_end_addr;
+                void *old_start_addr;
+                end_addr = stacks->data + stacks->size * end;
+                old_end_addr = stacks->data + stacks->size * old_end;
                 old_start_addr = old_end_addr - old_size;
 
-                while (old_start_addr <= old_end_addr) {
-                    memcpy(end_addr, old_end_addr, stacks->size);
+                while (old_start_addr < old_end_addr) {
                     end_addr -= stacks->size;
                     old_end_addr -= stacks->size;
+                    memcpy(end_addr, old_end_addr, stacks->size);
                 }
             }
 
