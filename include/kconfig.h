@@ -47,6 +47,9 @@
 /* Rom file system */
 #define ROMFS_FILE_LIMIT 8
 
+/* Proc file system */
+#define PROCFS_FILE_LIMIT TASK_LIMIT
+
 /* Interrupt */
 #define INTR_LIMIT 58 /* IRQn = [-15 ... 42] */
 
