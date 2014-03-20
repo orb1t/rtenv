@@ -675,13 +675,48 @@ void show_xxd(int argc, char *argv[])
 
 void first()
 {
-	if (!fork()) setpriority(0, 0), pathserver();
-	if (!fork()) setpriority(0, 0), romdev_driver();
-	if (!fork()) setpriority(0, 0), romfs_server();
-	if (!fork()) setpriority(0, 0), serialout(USART2, USART2_IRQn);
-	if (!fork()) setpriority(0, 0), serialin(USART2, USART2_IRQn);
-	if (!fork()) rs232_xmit_msg_task();
-	if (!fork()) setpriority(0, PRIORITY_DEFAULT - 10), serial_test_task();
+	if (!fork()) {
+	    struct rlimit rlimit = {
+	        .rlim_cur = 256 * 4
+	    };
+
+	    setrlimit(RLIMIT_STACK, &rlimit);
+	    setpriority(0, 0);
+	    pathserver();
+	}
+	if (!fork()) {
+	    setpriority(0, 0);
+	    romdev_driver();
+	}
+	if (!fork()) {
+	    struct rlimit rlimit = {
+	        .rlim_cur = 256 * 4
+	    };
+
+	    setrlimit(RLIMIT_STACK, &rlimit);
+	    setpriority(0, 0);
+	    romfs_server();
+	}
+	if (!fork()) {
+	    setpriority(0, 0);
+	    serialout(USART2, USART2_IRQn);
+	}
+	if (!fork()) {
+	    setpriority(0, 0);
+	    serialin(USART2, USART2_IRQn);
+	}
+	if (!fork()) {
+	    rs232_xmit_msg_task();
+	}
+	if (!fork()) {
+	    struct rlimit rlimit = {
+	        .rlim_cur = 512 * 4
+	    };
+
+	    setrlimit(RLIMIT_STACK, &rlimit);
+	    setpriority(0, PRIORITY_DEFAULT - 10);
+	    serial_test_task();
+	}
 
 	setpriority(0, PRIORITY_LIMIT);
 
@@ -708,7 +743,7 @@ int time_release(struct event_monitor *monitor, int event,
 }
 
 struct stack {
-    unsigned int data [STACK_SIZE];
+    unsigned int data [STACK_DEFAULT_SIZE];
 };
 
 /* System resources */
@@ -734,6 +769,7 @@ int main()
 	int timeup;
 	unsigned int tick_count = 0;
 	struct stack *stack;
+	size_t stack_size;
 
 	SysTick_Config(configCPU_CLOCK_HZ / configTICK_RATE_HZ);
 
@@ -768,10 +804,11 @@ int main()
 	event_monitor_register(&event_monitor, TIME_EVENT, time_release, &tick_count);
 
     /* Initialize first thread */
-    stack = stack_pool_allocate(&stack_pool, STACK_SIZE);
-	tasks[task_count].stack = (void*)init_task(stack->data, &first);
+    stack_size = STACK_DEFAULT_SIZE;
+    stack = stack_pool_allocate(&stack_pool, stack_size * 4); /* unsigned int */
+	tasks[task_count].stack = (void*)init_task(stack->data, &first, stack_size);
 	tasks[task_count].stack_start = stack->data;
-	tasks[task_count].stack_end = stack->data + STACK_SIZE;
+	tasks[task_count].stack_end = stack->data + stack_size;
 	tasks[task_count].pid = 0;
 	tasks[task_count].priority = PRIORITY_DEFAULT;
 	list_init(&tasks[task_count].list);
@@ -798,10 +835,12 @@ int main()
 				size_t used = tasks[current_task].stack_end
 					      - (unsigned int*)tasks[current_task].stack;
 				/* New stack is END - used */
-                stack = stack_pool_allocate(&stack_pool, STACK_SIZE);
-				tasks[task_count].stack = (void*)(stack + STACK_SIZE - used);
+				stack_size = tasks[current_task].stack_end -
+				             tasks[current_task].stack_start;
+                stack = stack_pool_allocate(&stack_pool, stack_size * 4);
+				tasks[task_count].stack = (void*)(stack->data + stack_size - used);
 	            tasks[task_count].stack_start = stack->data;
-	            tasks[task_count].stack_end = stack->data + STACK_SIZE;
+	            tasks[task_count].stack_end = stack->data + stack_size;
 				/* Copy only the used part of the stack */
 				memcpy(tasks[task_count].stack, tasks[current_task].stack,
 				       used * sizeof(unsigned int));
@@ -952,7 +991,7 @@ int main()
 		                                        task->stack_start);
 		            if (stack) {
 		                task->stack_start = stack->data;
-		                task->stack_end = stack->data + size;
+		                task->stack_end = (void*)stack->data + size;
 		                task->stack = (void*)task->stack_end - used;
 		            }
 		            else {

@@ -30,7 +30,7 @@ struct user_thread_stack {
 	unsigned int lr;	/* Back to user thread code */
 	unsigned int pc;
 	unsigned int xpsr;
-	unsigned int stack[STACK_SIZE - 18];
+	unsigned int stack;
 };
 
 /* Task Control Block */
@@ -45,6 +45,6 @@ struct task_control_block {
     struct list list;
 };
 
-unsigned int *init_task(unsigned int *stack, void (*start)());
+unsigned int *init_task(unsigned int *stack, void (*start)(), size_t stack_size);
 
 #endif
