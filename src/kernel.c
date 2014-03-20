@@ -764,7 +764,7 @@ int main()
 	struct task_control_block *task;
 	int timeup;
 	unsigned int tick_count = 0;
-	struct stack *stack;
+	void *stack;
 	size_t stack_size;
 
 	SysTick_Config(configCPU_CLOCK_HZ / configTICK_RATE_HZ);
@@ -801,10 +801,10 @@ int main()
 
     /* Initialize first thread */
     stack_size = STACK_DEFAULT_SIZE;
-    stack = stack_pool_allocate(&stack_pool, stack_size * 4); /* unsigned int */
-	tasks[task_count].stack = (void*)init_task(stack->data, &first, stack_size);
-	tasks[task_count].stack_start = stack->data;
-	tasks[task_count].stack_end = stack->data + stack_size;
+    stack = stack_pool_allocate(&stack_pool, stack_size); /* unsigned int */
+	tasks[task_count].stack = (void*)init_task(stack, &first, stack_size);
+	tasks[task_count].stack_start = stack;
+	tasks[task_count].stack_end = stack + stack_size;
 	tasks[task_count].pid = 0;
 	tasks[task_count].priority = PRIORITY_DEFAULT;
 	list_init(&tasks[task_count].list);
@@ -829,17 +829,17 @@ int main()
 			else {
 				/* Compute how much of the stack is used */
 				size_t used = tasks[current_task].stack_end
-					      - (unsigned int*)tasks[current_task].stack;
+					        - (void*)tasks[current_task].stack;
 				/* New stack is END - used */
 				stack_size = tasks[current_task].stack_end -
 				             tasks[current_task].stack_start;
-                stack = stack_pool_allocate(&stack_pool, stack_size * 4);
-				tasks[task_count].stack = (void*)(stack->data + stack_size - used);
-	            tasks[task_count].stack_start = stack->data;
-	            tasks[task_count].stack_end = stack->data + stack_size;
+                stack = stack_pool_allocate(&stack_pool, stack_size);
+				tasks[task_count].stack = stack + stack_size - used;
+	            tasks[task_count].stack_start = stack;
+	            tasks[task_count].stack_end = stack + stack_size;
 				/* Copy only the used part of the stack */
 				memcpy(tasks[task_count].stack, tasks[current_task].stack,
-				       used * sizeof(unsigned int));
+				       used);
 				/* Set PID */
 				tasks[task_count].pid = task_count;
 				/* Set priority, inherited from forked task */
@@ -981,14 +981,14 @@ int main()
 		        unsigned int resource = task->stack->r0;
 		        if (resource == RLIMIT_STACK) {
 		            struct rlimit *rlimit = (void*)task->stack->r1;
-		            size_t used = (void*)task->stack_end - (void*)task->stack;
+		            size_t used = task->stack_end - (void*)task->stack;
 		            size_t size = rlimit->rlim_cur;
 		            stack = stack_pool_relocate(&stack_pool, &size,
 		                                        task->stack_start);
 		            if (stack) {
-		                task->stack_start = stack->data;
-		                task->stack_end = (void*)stack->data + size;
-		                task->stack = (void*)task->stack_end - used;
+		                task->stack_start = stack;
+		                task->stack_end = stack + size;
+		                task->stack = task->stack_end - used;
 		            }
 		            else {
 		                tasks[current_task].stack->r0 = -1;

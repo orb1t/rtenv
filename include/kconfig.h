@@ -3,11 +3,11 @@
 
 /* Task */
 #define TASK_LIMIT 8  /* Max number of tasks we can handle */
-#define STACK_DEFAULT_SIZE 128
+#define STACK_DEFAULT_SIZE 512
 
 /* Stack Chunk */
 #define STACK_LIMIT TASK_LIMIT * 3
-#define STACK_CHUNK_SIZE 128
+#define STACK_CHUNK_SIZE 512
 
 /* FIFO file */
 #define FIFO_LIMIT_RESERVED (3 + TASK_LIMIT + 1)
