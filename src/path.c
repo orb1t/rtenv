@@ -158,6 +158,14 @@ void pathserver()
                 }
             }
 
+            if (*src) {
+                dev = i + 3 + TASK_LIMIT;
+            }
+            else {
+                dev = -1;
+                i = -1;
+            }
+
             if (i >= npaths) {
                 status = -1; /* Error: not found */
                 write(replyfd, &status, 4);
@@ -165,7 +173,7 @@ void pathserver()
             }
 
             /* Store mount point */
-            mounts[nmounts].dev = i + 3 + TASK_LIMIT;
+            mounts[nmounts].dev = dev;
             memcpy(mounts[nmounts].path, dst, dlen);
             nmounts++;
 
