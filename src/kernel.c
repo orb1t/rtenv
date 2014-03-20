@@ -425,35 +425,54 @@ void export_envvar(int argc, char *argv[])
     }
 }
 
+#define PS_PATH_LEN 16
+
 //ps
 void show_task_info(int argc, char *argv[])
 {
     char ps_message[]="PID STATUS PRIORITY";
     int ps_message_length = sizeof(ps_message);
+    char proc_path[PS_PATH_LEN];
+    int proc_file;
     int task_i;
+    int pid;
+    int status;
+    int priority;
 
     write(fdout, &ps_message , ps_message_length);
     write(fdout, &next_line , 3);
 
-    for (task_i = 0; task_i < task_count; task_i++) {
+    for (task_i = 0; task_i < TASK_LIMIT; task_i++) {
         char task_info_pid[2];
         char task_info_status[2];
         char task_info_priority[3];
 
-        task_info_pid[0]='0'+tasks[task_i].pid;
-        task_info_pid[1]='\0';
-        task_info_status[0]='0'+tasks[task_i].status;
-        task_info_status[1]='\0';
+        strcpy(proc_path, "/proc/");
+        itoa(task_i, proc_path + strlen(proc_path), 10);
+        strcpy(proc_path + strlen(proc_path), "/stat");
+        proc_file = open(proc_path, 0);
 
-        itoa(tasks[task_i].priority, task_info_priority, 10);
+        if (proc_file != -1) {
+            lseek(proc_file, 0, SEEK_SET);
+            read(proc_file, &pid, sizeof(pid));
+            read(proc_file, &status, sizeof(status));
+            read(proc_file, &priority, sizeof(priority));
 
-        write(fdout, &task_info_pid , 2);
-        write_blank(3);
-        write(fdout, &task_info_status , 2);
-        write_blank(5);
-        write(fdout, &task_info_priority , 3);
+            task_info_pid[0]='0'+pid;
+            task_info_pid[1]='\0';
+            task_info_status[0]='0'+status;
+            task_info_status[1]='\0';
 
-        write(fdout, &next_line , 3);
+            itoa(priority, task_info_priority, 10);
+
+            write(fdout, &task_info_pid , 2);
+            write_blank(3);
+            write(fdout, &task_info_status , 2);
+            write_blank(5);
+            write(fdout, &task_info_priority , 3);
+
+            write(fdout, &next_line , 3);
+        }
     }
 }
 
