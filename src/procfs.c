@@ -72,12 +72,16 @@ void procfs_server()
                             status = path_register(request.path);
 
                             if (status != -1) {
-                                mknod(status, 0, S_IFREG);
-                                files[nfiles].fd = status;
-                                files[nfiles].pid = tasks[pid].pid;
-                                files[nfiles].status = tasks[pid].status;
-                                files[nfiles].priority = tasks[pid].priority;
-                                nfiles++;
+                                if (mknod(status, 0, S_IFREG) == 0) {
+                                    files[nfiles].fd = status;
+                                    files[nfiles].pid = tasks[pid].pid;
+                                    files[nfiles].status = tasks[pid].status;
+                                    files[nfiles].priority = tasks[pid].priority;
+                                    nfiles++;
+                                }
+                                else {
+                                    status = -1;
+                                }
                             }
                         }
                     }

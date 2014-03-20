@@ -22,7 +22,7 @@ struct mount {
  */
 void pathserver()
 {
-    char paths[FILE_LIMIT - TASK_LIMIT - 3][PATH_MAX];
+    char paths[PATH_LIMIT][PATH_MAX];
     int npaths = 0;
     int fs_fds[FS_LIMIT];
     char fs_types[FS_LIMIT][FS_TYPE_MAX];
@@ -51,9 +51,14 @@ void pathserver()
             read(PATHSERVER_FD, path, plen);
             read(PATHSERVER_FD, &dev, 4);
             newfd = npaths + 3 + TASK_LIMIT;
-            if (mknod(newfd, 0, dev) == 0) {
-                memcpy(paths[npaths], path, plen);
-                npaths++;
+            if (npaths < PATH_LIMIT) {
+                if (mknod(newfd, 0, dev) == 0) {
+                    memcpy(paths[npaths], path, plen);
+                    npaths++;
+                }
+                else {
+                    newfd = -1;
+                }
             }
             else {
                 newfd = -1;
@@ -107,8 +112,13 @@ void pathserver()
             read(PATHSERVER_FD, &plen, 4);
             read(PATHSERVER_FD, path, plen);
             newfd = npaths + 3 + TASK_LIMIT;
-            memcpy(paths[npaths], path, plen);
-            npaths++;
+            if (npaths < PATH_LIMIT) {
+                memcpy(paths[npaths], path, plen);
+                npaths++;
+            }
+            else {
+                newfd = -1;
+            }
             write(replyfd, &newfd, 4);
             break;
 

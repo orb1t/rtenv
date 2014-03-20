@@ -454,9 +454,12 @@ void show_task_info(int argc, char *argv[])
 
         if (proc_file != -1) {
             lseek(proc_file, 0, SEEK_SET);
-            read(proc_file, &pid, sizeof(pid));
-            read(proc_file, &status, sizeof(status));
-            read(proc_file, &priority, sizeof(priority));
+            if (read(proc_file, &pid, sizeof(pid)) == -1)
+                continue;
+            if (read(proc_file, &status, sizeof(status)) == -1)
+                continue;
+            if (read(proc_file, &priority, sizeof(priority)) == -1)
+                continue;
 
             task_info_pid[0]='0'+pid;
             task_info_pid[1]='\0';

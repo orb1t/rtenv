@@ -37,6 +37,7 @@
 #define MEM_LIMIT 0x000
 
 /* Path server */
+#define PATH_LIMIT (FILE_LIMIT - TASK_LIMIT - 3)
 #define PATH_MAX   32 /* Longest absolute path */
 #define PATHSERVER_FD (TASK_LIMIT + 3)
 	/* File descriptor of pipe to pathserver */
