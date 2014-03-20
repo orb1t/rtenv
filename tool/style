@@ -1,0 +1,11 @@
+# Main style
+style=linux
+
+# Padding
+pad-header
+unpad-paren
+align-pointer=name
+
+# Bracket
+break-closing-brackets
+max-code-length=80
