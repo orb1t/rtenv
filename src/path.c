@@ -80,7 +80,7 @@ void pathserver()
             }
 
             /* Search for mount point */
-            for (i = 0; i < nmounts; i++) {
+            for (i = nmounts - 1; i >= 0; i--) {
                 if (*mounts[i].path
                     && strncmp(path, mounts[i].path,
                                strlen(mounts[i].path)) == 0) {
@@ -97,7 +97,7 @@ void pathserver()
                 }
             }
 
-            if (i >= nmounts) {
+            if (i < 0) {
                 i = -1; /* Error: not found */
                 write(replyfd, &i, 4);
             }
