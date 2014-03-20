@@ -23,6 +23,7 @@
 #include "object-pool.h"
 #include "serial.h"
 #include "stack-pool.h"
+#include "procfs.h"
 
 #ifdef USE_TASK_STAT_HOOK
 #include "task-stat-hook.h"
@@ -699,6 +700,15 @@ void first()
         romfs_server();
     }
     if (!fork()) {
+        struct rlimit rlimit = {
+            .rlim_cur = 256 * 4
+        };
+
+        setrlimit(RLIMIT_STACK, &rlimit);
+        setpriority(0, 0);
+        procfs_server();
+    }
+    if (!fork()) {
         setpriority(0, 0);
         serialout(USART2, USART2_IRQn);
     }
@@ -722,6 +732,7 @@ void first()
     setpriority(0, PRIORITY_LIMIT);
 
     mount("/dev/rom0", "/", ROMFS_TYPE, 0);
+    mount("", "/proc/", PROCFS_TYPE, 0);
 
     while (1);
 }
