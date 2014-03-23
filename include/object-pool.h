@@ -14,12 +14,27 @@
         .data = _object_pool_##_name##_data, \
     };
 
+#define object_pool_for_each(pool, cursor, item) \
+    for ((cursor).curr = bitmap_addr((pool)->bitmap, 0), \
+            (cursor).last = bitmap_addr((pool)->bitmap, (pool)->num), \
+            (item) = (pool)->data; \
+         (cursor).curr < (cursor).last; \
+         (cursor).curr++, (item)++) \
+        if (*(cursor).curr)
+
+#define object_pool_cursor_end(pool, cursor) ((cursor).curr >= (cursor).last)
+
 struct object_pool {
     char *name;
     int *bitmap;
     int size;
     int num;
     void *data;
+};
+
+struct object_pool_cursor {
+    int *curr;
+    int *last;
 };
 
 void object_pool_init(struct object_pool *pool);
