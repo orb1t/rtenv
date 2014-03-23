@@ -4,12 +4,31 @@
 #include "string.h"
 #include "syscall.h"
 #include "fs.h"
+#include "object-pool.h"
+
+
 
 struct mount {
     int fs;
     int dev;
     char path[PATH_MAX];
 };
+
+struct path {
+    char name[PATH_MAX];
+};
+
+DECLARE_OBJECT_POOL(struct path, paths, PATH_LIMIT);
+
+inline int path_get_fd(struct object_pool *paths, struct path *path)
+{
+    int i = object_pool_find(paths, path);
+
+    if (i != -1)
+        return i + 3 + TASK_LIMIT;
+    else
+        return -1;
+}
 
 /*
  * pathserver assumes that all files are FIFOs that were registered
@@ -22,8 +41,7 @@ struct mount {
  */
 void pathserver()
 {
-    char paths[PATH_LIMIT][PATH_MAX];
-    int npaths = 0;
+    struct path *path;
     int fs_fds[FS_LIMIT];
     char fs_types[FS_LIMIT][FS_TYPE_MAX];
     int nfs_types = 0;
@@ -33,13 +51,16 @@ void pathserver()
     int cmd = 0;
     unsigned int plen = 0;
     unsigned int replyfd = 0;
-    char path[PATH_MAX];
+    char pathname[PATH_MAX];
     int dev = 0;
     int newfd = 0;
     char fs_type[FS_TYPE_MAX];
     int status;
+    struct object_pool_cursor cursor;
 
-    memcpy(paths[npaths++], PATH_SERVER_NAME, sizeof(PATH_SERVER_NAME));
+    /* register itself */
+    path = object_pool_register(&paths, 0);
+    memcpy(path->name, PATH_SERVER_NAME, sizeof(PATH_SERVER_NAME));
 
     while (1) {
         read(PATHSERVER_FD, &cmd, 4);
@@ -48,46 +69,40 @@ void pathserver()
         switch (cmd) {
         case PATH_CMD_MKFILE:
             read(PATHSERVER_FD, &plen, 4);
-            read(PATHSERVER_FD, path, plen);
+            read(PATHSERVER_FD, pathname, plen);
             read(PATHSERVER_FD, &dev, 4);
-            newfd = npaths + 3 + TASK_LIMIT;
-            if (npaths < PATH_LIMIT) {
-                if (mknod(newfd, 0, dev) == 0) {
-                    memcpy(paths[npaths], path, plen);
-                    npaths++;
-                }
-                else {
-                    newfd = -1;
-                }
+            path = object_pool_allocate(&paths);
+            newfd = path_get_fd(&paths, path);
+
+            if (path && mknod(newfd, 0, dev) == 0) {
+                memcpy(path->name, pathname, plen);
             }
             else {
-                newfd = -1;
+                object_pool_free(&paths, path);
             }
             write(replyfd, &newfd, 4);
             break;
 
         case PATH_CMD_OPEN:
             read(PATHSERVER_FD, &plen, 4);
-            read(PATHSERVER_FD, path, plen);
+            read(PATHSERVER_FD, pathname, plen);
             /* Search for path */
-            for (i = 0; i < npaths; i++) {
-                if (*paths[i] && strcmp(path, paths[i]) == 0) {
-                    i += 3; /* 0-2 are reserved */
-                    i += TASK_LIMIT; /* FDs reserved for tasks */
-                    write(replyfd, &i, 4);
-                    i = 0;
+            object_pool_for_each (&paths, cursor, path) {
+                if (*path->name && strcmp(pathname, path->name) == 0) {
+                    status = path_get_fd(&paths, path);
+                    write(replyfd, &status, 4);
                     break;
                 }
             }
 
-            if (i < npaths) {
+            if (!object_pool_cursor_end(&paths, cursor)) {
                 break;
             }
 
             /* Search for mount point */
             for (i = nmounts - 1; i >= 0; i--) {
                 if (*mounts[i].path
-                    && strncmp(path, mounts[i].path,
+                    && strncmp(pathname, mounts[i].path,
                                strlen(mounts[i].path)) == 0) {
                     int mlen = strlen(mounts[i].path);
                     struct fs_request request;
@@ -95,7 +110,7 @@ void pathserver()
                     request.from = replyfd;
                     request.device = mounts[i].dev;
                     request.pos = mlen; /* search starting position */
-                    memcpy(request.path, &path, plen);
+                    memcpy(request.path, pathname, plen);
                     write(mounts[i].fs, &request, sizeof(request));
                     i = 0;
                     break;
@@ -110,14 +125,14 @@ void pathserver()
 
         case PATH_CMD_REGISTER_PATH:
             read(PATHSERVER_FD, &plen, 4);
-            read(PATHSERVER_FD, path, plen);
-            newfd = npaths + 3 + TASK_LIMIT;
-            if (npaths < PATH_LIMIT) {
-                memcpy(paths[npaths], path, plen);
-                npaths++;
+            read(PATHSERVER_FD, pathname, plen);
+            path = object_pool_allocate(&paths);
+            newfd = path_get_fd(&paths, path);
+            if (path) {
+                memcpy(path->name, pathname, plen);
             }
             else {
-                newfd = -1;
+                object_pool_free(&paths, path);
             }
             write(replyfd, &newfd, 4);
             break;
@@ -161,25 +176,25 @@ void pathserver()
 
             mounts[nmounts].fs = fs_fds[i];
 
-            /* Search for device */
-            for (i = 0; i < npaths; i++) {
-                if (*paths[i] && strcmp(src, paths[i]) == 0) {
-                    break;
-                }
-            }
 
             if (*src) {
-                dev = i + 3 + TASK_LIMIT;
+                /* Search for device */
+                object_pool_for_each (&paths, cursor, path) {
+                    if (*path->name && strcmp(src, path->name) == 0) {
+                        break;
+                    }
+                }
+
+                if (object_pool_cursor_end(&paths, cursor)) {
+                    status = -1; /* Error: not found */
+                    write(replyfd, &status, 4);
+                    break;
+                }
+
+                dev = path_get_fd(&paths, path);
             }
             else {
                 dev = -1;
-                i = -1;
-            }
-
-            if (i >= npaths) {
-                status = -1; /* Error: not found */
-                write(replyfd, &status, 4);
-                break;
             }
 
             /* Store mount point */
