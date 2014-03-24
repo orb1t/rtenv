@@ -20,7 +20,8 @@ struct procfs_file {
 void procfs_server()
 {
     DECLARE_OBJECT_POOL(struct procfs_file, files, PROCFS_FILE_LIMIT);
-    extern struct task_control_block tasks[];
+    extern struct task_control_block _object_pool_tasks_data[];
+    struct task_control_block *tasks = _object_pool_tasks_data;
     int self;
     struct fs_request request;
     int cmd;
