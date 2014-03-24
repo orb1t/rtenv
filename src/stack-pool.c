@@ -111,7 +111,11 @@ void *stack_pool_relocate(struct stack_pool *pool, size_t *size, void *stack)
                     end_addr -= stacks->size;
                     old_end_addr -= stacks->size;
                     memcpy(end_addr, old_end_addr, stacks->size);
+
+                    bitmap[--old_end] = 0;
+                    bitmap[--end] = 1;
                 }
+                bitmap[--end] = 1;
             }
 
             *size = stacks->size * num;
