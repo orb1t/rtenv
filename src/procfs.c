@@ -19,9 +19,8 @@ struct procfs_file {
 
 void procfs_server()
 {
+    DECLARE_OBJECT_POOL(struct procfs_file, files, PROCFS_FILE_LIMIT);
     extern struct task_control_block tasks[];
-    struct procfs_file files[PROCFS_FILE_LIMIT];
-    int nfiles = 0;
     int self;
     struct fs_request request;
     int cmd;
@@ -33,9 +32,10 @@ void procfs_server()
     int status;
     const char *filename;
     void *data;
-    int data_start = sizeof(files[0].fd);
-    int data_len = sizeof(files[0]) - data_start;
-    int i;
+    int data_start = offsetof(struct procfs_file, pid);
+    int data_len = sizeof(struct procfs_file) - data_start;
+    struct procfs_file *file;
+    struct object_pool_cursor cursor;
 
     self = getpid() + 3;
 
@@ -73,11 +73,13 @@ void procfs_server()
 
                             if (status != -1) {
                                 if (mknod(status, 0, S_IFREG) == 0) {
-                                    files[nfiles].fd = status;
-                                    files[nfiles].pid = tasks[pid].pid;
-                                    files[nfiles].status = tasks[pid].status;
-                                    files[nfiles].priority = tasks[pid].priority;
-                                    nfiles++;
+                                    file = object_pool_allocate(&files);
+                                    if (file) {
+                                        file->fd = status;
+                                        file->pid = tasks[pid].pid;
+                                        file->status = tasks[pid].status;
+                                        file->priority = tasks[pid].priority;
+                                    }
                                 }
                                 else {
                                     status = -1;
@@ -97,13 +99,13 @@ void procfs_server()
                 pos = request.pos;
 
                 /* Find fd */
-                for (i = 0; i < nfiles; i++) {
-                    if (files[i].fd == target) {
-                        data = (void*)&files[i] + data_start;
+                object_pool_for_each(&files, cursor, file) {
+                    if (file->fd == target) {
+                        data = ((void*)file) + data_start;
 
                         /* Check boundary */
                         if (pos < 0) {
-                            i = nfiles;
+                            status = -1;
                         }
 
                         if (pos > data_len) {
@@ -116,7 +118,7 @@ void procfs_server()
                         break;
                     }
                 }
-                if (i >= nfiles) {
+                if (status == -1 || object_pool_cursor_end(&files, cursor)) {
                     write(target, NULL, -1);
                     break;
                 }
@@ -131,12 +133,12 @@ void procfs_server()
                 pos = request.pos;
 
                 /* Find fd */
-                for (i = 0; i < nfiles; i++) {
-                    if (files[i].fd == target) {
+                object_pool_for_each(&files, cursor, file) {
+                    if (file->fd == target) {
                         break;
                     }
                 }
-                if (i >= nfiles) {
+                if (object_pool_cursor_end(&files, cursor)) {
                     lseek(target, -1, SEEK_SET);
                     break;
                 }
