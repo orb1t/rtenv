@@ -83,7 +83,7 @@ void *stack_pool_relocate(struct stack_pool *pool, size_t *size, void *stack)
         int start = 0;
         int end = 0;
         while (end < stacks->num && end - start < num) {
-            if ((old_start <= end && end < old_end) || bitmap[end]) {
+            if (!(old_start <= end && end < old_end) && bitmap[end]) {
                 start = end + 1;
             }
             end++;
