@@ -475,6 +475,8 @@ void show_task_info(int argc, char *argv[])
             write(fdout, &task_info_priority , 3);
 
             write(fdout, &next_line , 3);
+
+            close(proc_file);
         }
     }
 }
@@ -694,6 +696,8 @@ void show_xxd(int argc, char *argv[])
 
         write(fdout, "\r\n", 3);
     }
+
+    close(readfd);
 }
 
 

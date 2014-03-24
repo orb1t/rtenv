@@ -16,6 +16,9 @@ struct mount {
 
 struct path {
     char name[PATH_MAX];
+    int driver;
+    int is_cache;
+    int ref_count;
 };
 
 DECLARE_OBJECT_POOL(struct path, paths, PATH_LIMIT);
@@ -28,6 +31,11 @@ inline int path_get_fd(struct object_pool *paths, struct path *path)
         return i + 3 + TASK_LIMIT;
     else
         return -1;
+}
+
+inline struct path* path_get_by_fd(struct object_pool *paths, int fd)
+{
+    return object_pool_get(paths, fd - 3 - TASK_LIMIT);
 }
 
 /*
@@ -76,6 +84,8 @@ void pathserver()
 
             if (path && mknod(newfd, 0, dev) == 0) {
                 memcpy(path->name, pathname, plen);
+                path->driver = -1;
+                path->is_cache = 0;
             }
             else {
                 object_pool_free(&paths, path);
@@ -89,6 +99,9 @@ void pathserver()
             /* Search for path */
             object_pool_for_each (&paths, cursor, path) {
                 if (*path->name && strcmp(pathname, path->name) == 0) {
+                    if (path->is_cache)
+                        path->ref_count++;
+
                     status = path_get_fd(&paths, path);
                     write(replyfd, &status, 4);
                     break;
@@ -130,6 +143,20 @@ void pathserver()
             newfd = path_get_fd(&paths, path);
             if (path) {
                 memcpy(path->name, pathname, plen);
+                path->driver = replyfd;
+
+                /* Check whether is file system path cache */
+                for (i = 0; i < nmounts; i++) {
+                    if (mounts[i].fs == replyfd)
+                        break;
+                }
+                if (i < nmounts) {
+                    path->is_cache = 1;
+                    path->ref_count = 1;
+                }
+                else {
+                    path->is_cache = 0;
+                }
             }
             else {
                 object_pool_free(&paths, path);
@@ -206,6 +233,29 @@ void pathserver()
             write(replyfd, &status, 4);
         }
         break;
+
+        case PATH_CMD_CLOSE:
+            read(PATHSERVER_FD, &i, 4);
+            path = path_get_by_fd(&paths, i);
+            status = 0;
+
+            if (path) {
+                if (path->is_cache && !--path->ref_count) {
+                    struct fs_request request;
+                    request.cmd = FS_CMD_CLOSE;
+                    request.target = i;
+                    write(path->driver, &request, sizeof(request));
+
+                    object_pool_free(&paths, path);
+                    rmnod(i);
+                }
+            }
+            else {
+                status = -1;
+            }
+
+            write(replyfd, &status, 4);
+            break;
 
         default:
             ;

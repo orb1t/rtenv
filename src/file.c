@@ -53,6 +53,24 @@ int open(const char *pathname, int flags)
     return fd;
 }
 
+int close(int fd)
+{
+    int cmd = PATH_CMD_CLOSE;
+    unsigned int replyfd = getpid() + 3;
+    int status = -1;
+    char buf[4 + 4 + 4];
+    int pos = 0;
+
+    path_write_data(buf, &cmd, 4, pos);
+    path_write_data(buf, &replyfd, 4, pos);
+    path_write_data(buf, &fd, 4, pos);
+
+    write(PATHSERVER_FD, buf, pos);
+    read(replyfd, &status, 4);
+
+    return status;
+}
+
 int file_release(struct event_monitor *monitor, int event,
                  struct task_control_block *task, void *data)
 {

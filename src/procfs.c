@@ -154,6 +154,18 @@ void procfs_server()
                 lseek(target, size, SEEK_SET);
                 break;
 
+            case FS_CMD_CLOSE:
+                target = request.target;
+
+                /* Find fd */
+                object_pool_for_each(&files, cursor, file) {
+                    if (file->fd == target) {
+                        object_pool_free(&files, file);
+                        break;
+                    }
+                }
+                break;
+
             case FS_CMD_WRITE: /* readonly */
             default:
                 write(target, NULL, -1);
