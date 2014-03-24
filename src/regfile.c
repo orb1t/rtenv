@@ -11,6 +11,7 @@ struct regfile_response {
 };
 
 static struct file_operations regfile_ops = {
+    .deinit = regfile_deinit,
     .readable = regfile_readable,
     .writable = regfile_writable,
     .read = regfile_read,
@@ -322,6 +323,18 @@ int regfile_init(int fd, int driver_pid, struct file *files[],
 
     event = event_monitor_allocate(monitor, regfile_event_release, files[fd]);
     regfile->event = event_monitor_find(monitor, event);
+
+    return 0;
+}
+
+int regfile_deinit(struct file *file, struct file_request *request,
+                   struct event_monitor *monitor)
+{
+    struct regfile *regfile = container_of(file, struct regfile, file);
+
+    event_monitor_free(monitor, regfile->event);
+
+    object_pool_free(&regfiles, regfile);
 
     return 0;
 }

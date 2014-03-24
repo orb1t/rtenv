@@ -31,6 +31,7 @@ struct event* event_monitor_register(struct event_monitor *monitor, int n,
                                      event_monitor_handler handler, void *data);
 struct event* event_monitor_allocate(struct event_monitor *monitor,
                                      event_monitor_handler handler, void *data);
+void event_monitor_free(struct event_monitor *monitor, int event);
 int event_monitor_find(struct event_monitor *monitor, struct event *event);
 void event_monitor_block(struct event_monitor *monitor, int event,
                          struct task_control_block *task);

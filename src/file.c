@@ -168,6 +168,31 @@ file_mknod(int fd, int driver_pid, struct file *files[], int dev,
     return result;
 }
 
+int file_rmnod(struct file *file, struct file_request *request,
+               struct event_monitor *monitor, struct file *files[])
+{
+    if (file && file->ops->deinit) {
+        int fd = file->fd;
+        int status = file->ops->deinit(file, request, monitor);
+
+        if (request->task) {
+            request->task->stack->r0 = status;
+            request->task->status = TASK_READY;
+        }
+
+        files[fd] = NULL;
+
+        return 1;
+    }
+
+    if (request->task) {
+        request->task->stack->r0 = -1;
+        request->task->status = TASK_READY;
+    }
+
+    return -1;
+}
+
 int file_lseek(struct file *file, struct file_request *request,
                struct event_monitor *monitor)
 {

@@ -6,6 +6,7 @@
 
 
 static struct file_operations fifo_ops = {
+    .deinit = fifo_deinit,
     .readable = fifo_readable,
     .writable = fifo_writable,
     .read = fifo_read,
@@ -44,6 +45,21 @@ fifo_init(int fd, int driver_pid, struct file *files[],
 
     event = event_monitor_allocate(monitor, pipe_write_release, files[fd]);
     pipe->write_event = event_monitor_find(monitor, event);
+    return 0;
+}
+
+int
+fifo_deinit(struct file *file, struct file_request *request,
+            struct event_monitor *monitor)
+{
+    struct pipe_ringbuffer *pipe =
+        container_of(file, struct pipe_ringbuffer, file);
+
+    event_monitor_free(monitor, pipe->read_event);
+    event_monitor_free(monitor, pipe->write_event);
+
+    object_pool_free(&fifos, pipe);
+
     return 0;
 }
 

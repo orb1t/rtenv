@@ -48,6 +48,13 @@ struct event *event_monitor_allocate(struct event_monitor *monitor,
     return event;
 }
 
+void event_monitor_free(struct event_monitor *monitor, int event_id)
+{
+    struct event *event = object_pool_get(monitor->events, event_id);
+
+    object_pool_free(monitor->events, event);
+}
+
 int event_monitor_find(struct event_monitor *monitor, struct event *event)
 {
     return object_pool_find(monitor->events, event);

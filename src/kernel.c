@@ -1035,6 +1035,22 @@ int main()
             }
         }
         break;
+        case 0xc: { /* rmnod */
+            /* Check fd is valid */
+            int fd = tasks[current_task].stack->r0;
+            if (fd < FILE_LIMIT && files[fd]) {
+                /* Prepare file request, store reference in r0 */
+                requests[current_task].task = &tasks[current_task];
+                tasks[current_task].stack->r0 =
+                    (int)&requests[current_task];
+
+                file_rmnod(files[fd], &requests[current_task],
+                           &event_monitor, files);
+            }
+            else {
+                tasks[current_task].stack->r0 = -1;
+            }
+        }   break;
         default: /* Catch all interrupts */
             if ((int)tasks[current_task].stack->r7 < 0) {
                 unsigned int intr = -tasks[current_task].stack->r7 - 16;

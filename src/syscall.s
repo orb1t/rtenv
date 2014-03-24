@@ -91,3 +91,11 @@ setrlimit:
 	nop
 	pop {r7}
 	bx lr
+.global rmnod
+rmnod:
+	push {r7}
+	mov r7, #0xc
+	svc 0
+	nop
+	pop {r7}
+	bx lr

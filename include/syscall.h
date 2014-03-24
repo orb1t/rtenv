@@ -15,6 +15,7 @@ int getpriority(int who);
 int setpriority(int who, int value);
 
 int mknod(int fd, int mode, int dev);
+int rmnod(int fd);
 
 void sleep(unsigned int);
 

@@ -12,6 +12,7 @@ struct block_response {
 };
 
 static struct file_operations block_ops = {
+    .deinit = block_deinit,
     .readable = block_readable,
     .writable = block_writable,
     .read = block_read,
@@ -316,6 +317,18 @@ int block_init(int fd, int driver_pid, struct file *files[],
 
     event = event_monitor_allocate(monitor, block_event_release, files[fd]);
     block->event = event_monitor_find(monitor, event);
+
+    return 0;
+}
+
+int block_deinit(struct file *file, struct file_request *request,
+                 struct event_monitor *monitor)
+{
+    struct block *block = container_of(file, struct block, file);
+
+    event_monitor_free(monitor, block->event);
+
+    object_pool_free(&blocks, block);
 
     return 0;
 }

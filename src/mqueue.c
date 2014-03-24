@@ -7,6 +7,7 @@
 
 
 static struct file_operations mq_ops = {
+    .deinit = mq_deinit,
     .readable = mq_readable,
     .writable = mq_writable,
     .read = mq_read,
@@ -46,6 +47,21 @@ mq_init(int fd, int driver_pid, struct file *files[],
 
     event = event_monitor_allocate(monitor, pipe_write_release, files[fd]);
     pipe->write_event = event_monitor_find(monitor, event);
+    return 0;
+}
+
+int
+mq_deinit (struct file *file, struct file_request *request,
+           struct event_monitor *monitor)
+{
+    struct pipe_ringbuffer *pipe =
+        container_of(file, struct pipe_ringbuffer, file);
+
+    event_monitor_free(monitor, pipe->read_event);
+    event_monitor_free(monitor, pipe->write_event);
+
+    object_pool_free(&mqueues, pipe);
+
     return 0;
 }
 

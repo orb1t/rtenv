@@ -23,6 +23,8 @@ struct regfile {
 
 int regfile_init(int fd, int driver_pid, struct file *files[],
                  struct memory_pool *memory_pool, struct event_monitor *monitor);
+int regfile_deinit (struct file *file, struct file_request *request,
+                    struct event_monitor *monitor);
 int regfile_response(int fd, char *buf, int len);
 int regfile_readable (struct file *file, struct file_request *request,
                       struct event_monitor *monitor);
