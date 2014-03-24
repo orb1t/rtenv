@@ -352,8 +352,8 @@ int main()
         case 0x9: /* sleep */
             if (current_task->stack->r0 != 0) {
                 current_task->stack->r0 += tick_count;
-                current_task->status = TASK_WAIT_TIME;
                 event_monitor_block(&event_monitor, TIME_EVENT, current_task);
+                current_task->status = TASK_WAIT_TIME;
             }
             break;
         case 0xa: { /* lseek */
