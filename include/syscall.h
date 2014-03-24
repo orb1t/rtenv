@@ -24,3 +24,4 @@ void lseek(int fd, int offset, int whence);
 int setrlimit(int resource, const struct rlimit *rlp);
 
 void exit(int status);
+int waitpid(int pid, int *status, int options);

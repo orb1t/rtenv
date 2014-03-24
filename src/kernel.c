@@ -135,6 +135,16 @@ int time_release(struct event_monitor *monitor, int event,
     return task->stack->r0 == *tick_count;
 }
 
+int exit_release(struct event_monitor *monitor, int event,
+                 struct task_control_block *task, void *data)
+{
+    int *status = data;
+    *((int *)task->stack->r1) = *status;
+    task->status = TASK_READY;
+
+    return 1;
+}
+
 /* System resources */
 DECLARE_OBJECT_POOL(struct task_control_block, tasks, TASK_LIMIT);
 DECLARE_OBJECT_POOL(struct stack, stacks, STACK_LIMIT);
@@ -201,6 +211,7 @@ int main()
     task->stack_end = stack + stack_size;
     task->pid = 0;
     task->priority = PRIORITY_DEFAULT;
+    task->exit_event = -1;
     list_init(&task->list);
     list_push(&ready_list[task->priority], &task->list);
     current_task = task;
@@ -245,6 +256,8 @@ int main()
             task->pid = object_pool_find(&tasks, task);
             /* Set priority, inherited from forked task */
             task->priority = current_task->priority;
+            /* Clear exit event */
+            task->exit_event = -1;
             /* Set return values in each process */
             current_task->stack->r0 = task->pid;
             task->stack->r0 = 0;
@@ -418,10 +431,35 @@ int main()
             list_remove(&current_task->list);
             stack_pool_free(&stack_pool, current_task->stack_start);
             current_task->pid = -1;
+            if (current_task->exit_event != -1)
+                event_monitor_release(&event_monitor, current_task->exit_event);
             object_pool_free(&tasks, current_task);
 
             current_task = NULL;
         }
+        break;
+        case 0xe: { /* waitpid */
+            int pid = current_task->stack->r0;
+
+            task = object_pool_get(&tasks, pid);
+            if (task) {
+                if (task->exit_event == -1) {
+                    /* Allocate if does not have one */
+                    struct event *event = event_monitor_allocate(&event_monitor, exit_release, &task->status);
+                    task->exit_event = event_monitor_find(&event_monitor, event);
+                }
+                if (task->exit_event != -1) {
+                    event_monitor_block(&event_monitor, task->exit_event, current_task);
+                    current_task->status = TASK_WAIT_CHILD;
+                    break;
+                }
+            }
+
+            /* Failed to wait */
+            current_task->stack->r0 = -1;
+            current_task->status = TASK_READY;
+        }
+        break;
         default: /* Catch all interrupts */
             if ((int)current_task->stack->r7 < 0) {
                 unsigned int intr = -current_task->stack->r7 - 16;

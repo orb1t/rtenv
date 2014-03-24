@@ -9,6 +9,7 @@
 #define TASK_WAIT_WRITE 2
 #define TASK_WAIT_INTR  3
 #define TASK_WAIT_TIME  4
+#define TASK_WAIT_CHILD 5
 
 /* Stack struct of user thread, see "Exception entry and return" */
 struct user_thread_stack {
@@ -41,6 +42,7 @@ struct task_control_block {
     int pid;
     int status;
     int priority;
+    int exit_event;
 
     struct list list;
 };
