@@ -99,3 +99,11 @@ rmnod:
 	nop
 	pop {r7}
 	bx lr
+.global exit
+exit:
+	push {r7}
+	mov r7, #0xd
+	svc 0
+	nop
+	pop {r7}
+	bx lr

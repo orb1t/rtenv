@@ -121,3 +121,18 @@ void *stack_pool_relocate(struct stack_pool *pool, size_t *size, void *stack)
         return NULL;
     }
 }
+
+void stack_pool_free(struct stack_pool *pool, void *stack)
+{
+    struct object_pool *stacks = pool->stacks;
+
+    int old_start = (stack - stacks->data) / stacks->size;
+    int old_size = pool->sizes[old_start];
+    int old_num = old_size / stacks->size;
+    int old_end = old_start + old_num;
+
+    for (; old_start < old_end; old_start++) {
+        struct stack *stack = object_pool_get(stacks, old_start);
+        object_pool_free(stacks, stack);
+    }
+}

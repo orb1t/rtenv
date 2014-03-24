@@ -414,6 +414,14 @@ int main()
                 current_task->stack->r0 = -1;
             }
         }   break;
+        case 0xd: { /* exit */
+            list_remove(&current_task->list);
+            stack_pool_free(&stack_pool, current_task->stack_start);
+            current_task->pid = -1;
+            object_pool_free(&tasks, current_task);
+
+            current_task = NULL;
+        }
         default: /* Catch all interrupts */
             if ((int)current_task->stack->r7 < 0) {
                 unsigned int intr = -current_task->stack->r7 - 16;
@@ -436,9 +444,11 @@ int main()
         event_monitor_serve(&event_monitor);
 
         /* Check whether to context switch */
-        task = current_task;
-        if (timeup && ready_list[task->priority].next == &task->list)
-            list_push(&ready_list[task->priority], &task->list);
+        if (current_task) {
+            task = current_task;
+            if (timeup && ready_list[task->priority].next == &task->list)
+                list_push(&ready_list[task->priority], &task->list);
+        }
 
         /* Select next TASK_READY task */
         for (i = 0; list_empty(&ready_list[i]); i++);

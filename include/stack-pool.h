@@ -17,5 +17,6 @@ struct stack_pool {
 void stack_pool_init(struct stack_pool *pool, struct object_pool *stacks);
 void *stack_pool_allocate(struct stack_pool *pool, size_t size);
 void *stack_pool_relocate(struct stack_pool *pool, size_t *size, void *stack);
+void stack_pool_free(struct stack_pool *pool, void *stack);
 
 #endif

@@ -22,3 +22,5 @@ void sleep(unsigned int);
 void lseek(int fd, int offset, int whence);
 
 int setrlimit(int resource, const struct rlimit *rlp);
+
+void exit(int status);
