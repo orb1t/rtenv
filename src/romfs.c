@@ -6,6 +6,7 @@
 #include "fs.h"
 #include "file.h"
 #include "string.h"
+#include "object-pool.h"
 
 struct romfs_file {
     int fd;
@@ -67,8 +68,7 @@ int romfs_open(int device, char *path, struct romfs_entry *entry)
 
 void romfs_server()
 {
-    struct romfs_file files[ROMFS_FILE_LIMIT];
-    int nfiles = 0;
+    DECLARE_OBJECT_POOL(struct romfs_file, files, ROMFS_FILE_LIMIT);
     int self = getpid() + 3;
     struct romfs_entry entry;
     struct fs_request request;
@@ -79,10 +79,11 @@ void romfs_server()
     int size;
     int pos;
     int status;
-    int i;
     int data_start;
     int data_end;
     char data[REGFILE_BUF];
+    struct romfs_file *file;
+    struct object_pool_cursor cursor;
 
     path_register_fs(ROMFS_TYPE);
 
@@ -102,11 +103,13 @@ void romfs_server()
 
                     if (status != -1) {
                         mknod(status, 0, S_IFREG);
-                        files[nfiles].fd = status;
-                        files[nfiles].device = request.device;
-                        files[nfiles].start = pos + sizeof(entry);
-                        files[nfiles].len = entry.len;
-                        nfiles++;
+                        file = object_pool_allocate(&files);
+                        if (file) {
+                            file->fd = status;
+                            file->device = request.device;
+                            file->start = pos + sizeof(entry);
+                            file->len = entry.len;
+                        }
                     }
                 }
                 else {
@@ -123,26 +126,26 @@ void romfs_server()
                 pos = request.pos;
 
                 /* Find fd */
-                for (i = 0; i < nfiles; i++) {
-                    if (files[i].fd == target) {
-                        device = files[i].device;
+                object_pool_for_each(&files, cursor, file) {
+                    if (file->fd == target) {
+                        device = file->device;
 
                         /* Check boundary */
-                        data_start = files[i].start + pos;
-                        if (data_start < files[i].start) {
-                            i = nfiles;
+                        data_start = file->start + pos;
+                        if (data_start < file->start) {
+                            status = -1;
                             break;
                         }
-                        if (data_start > files[i].start + files[i].len)
-                            data_start = files[i].start + files[i].len;
+                        if (data_start > file->start + file->len)
+                            data_start = file->start + file->len;
 
                         data_end = data_start + size;
-                        if (data_end > files[i].start + files[i].len)
-                            data_end = files[i].start + files[i].len;
+                        if (data_end > file->start + file->len)
+                            data_end = file->start + file->len;
                         break;
                     }
                 }
-                if (i >= nfiles) {
+                if (status == -1 || object_pool_cursor_end(&files, cursor)) {
                     write(target, NULL, -1);
                     break;
                 }
@@ -162,12 +165,12 @@ void romfs_server()
                 pos = request.pos;
 
                 /* Find fd */
-                for (i = 0; i < nfiles; i++) {
-                    if (files[i].fd == target) {
+                object_pool_for_each(&files, cursor, file) {
+                    if (file->fd == target) {
                         break;
                     }
                 }
-                if (i >= nfiles) {
+                if (object_pool_cursor_end(&files, cursor)) {
                     lseek(target, -1, SEEK_SET);
                     break;
                 }
@@ -175,7 +178,7 @@ void romfs_server()
                 if (pos == 0) { /* SEEK_SET */
                 }
                 else if (pos < 0) {   /* SEEK_END */
-                    size = (files[i].len) + size;
+                    size = (file->len) + size;
                 }
                 else {   /* SEEK_CUR */
                     size = pos + size;
