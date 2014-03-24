@@ -34,32 +34,6 @@
 size_t task_count = 0;
 struct task_control_block tasks[TASK_LIMIT];
 
-
-void greeting()
-{
-    int fdout = open("/dev/tty0/out", 0);
-    char *string = "Hello, World!\n";
-    while (*string) {
-        write(fdout, string, 1);
-        string++;
-    }
-}
-
-void echo()
-{
-    int fdout;
-    int fdin;
-    char c;
-
-    fdout = open("/dev/tty0/out", 0);
-    fdin = open("/dev/tty0/in", 0);
-
-    while (1) {
-        read(fdin, &c, 1);
-        write(fdout, &c, 1);
-    }
-}
-
 void rs232_xmit_msg_task()
 {
     int fdout;
@@ -83,75 +57,6 @@ void rs232_xmit_msg_task()
             write(fdout, &str[curr_char], 1);
             curr_char++;
         }
-    }
-}
-
-void queue_str_task(const char *str, int delay)
-{
-    int fdout = mq_open("/tmp/mqueue/out", 0);
-    int msg_len = strlen(str) + 1;
-
-    while (1) {
-        /* Post the message.  Keep on trying until it is successful. */
-        write(fdout, str, msg_len);
-
-        /* Wait. */
-        sleep(delay);
-    }
-}
-
-void queue_str_task1()
-{
-    queue_str_task("Hello 1\n", 200);
-}
-
-void queue_str_task2()
-{
-    queue_str_task("Hello 2\n", 50);
-}
-
-void serial_readwrite_task()
-{
-    int fdout;
-    int fdin;
-    char str[100];
-    char ch;
-    int curr_char;
-    int done;
-
-    fdout = mq_open("/tmp/mqueue/out", 0);
-    fdin = open("/dev/tty0/in", 0);
-
-    /* Prepare the response message to be queued. */
-    memcpy(str, "Got:", 4);
-
-    while (1) {
-        curr_char = 4;
-        done = 0;
-        do {
-            /* Receive a byte from the RS232 port (this call will
-             * block). */
-            read(fdin, &ch, 1);
-
-            /* If the byte is an end-of-line type character, then
-             * finish the string and inidcate we are done.
-             */
-            if (curr_char >= 98 || ch == '\r' || ch == '\n') {
-                str[curr_char] = '\n';
-                str[curr_char+1] = '\0';
-                done = -1;
-            }
-            /* Otherwise, add the character to the
-             * response string. */
-            else
-                str[curr_char++] = ch;
-        }
-        while (!done);
-
-        /* Once we are done building the response string, queue the
-         * response to be sent to the RS232 port.
-         */
-        write(fdout, str, curr_char+1 + 1);
     }
 }
 
