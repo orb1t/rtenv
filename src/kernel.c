@@ -7,25 +7,12 @@
 #include "syscall.h"
 
 #include <stddef.h>
-#include <ctype.h>
-#include <string.h>
 #include "string.h"
 #include "task.h"
 #include "memory-pool.h"
-#include "path.h"
-#include "pipe.h"
-#include "fifo.h"
-#include "mqueue.h"
-#include "block.h"
-#include "romdev.h"
 #include "event-monitor.h"
-#include "romfs.h"
 #include "object-pool.h"
-#include "serial.h"
-#include "output.h"
 #include "stack-pool.h"
-#include "procfs.h"
-#include "shell.h"
 #include "first.h"
 
 #ifdef USE_TASK_STAT_HOOK
