@@ -11,27 +11,32 @@ struct block_response {
     char *buf;
 };
 
-static struct file_operations block_ops = {
-    .deinit = block_deinit,
-    .read = block_readable,
-    .write = block_writable,
-    .lseek = block_lseekable,
-};
-
-DECLARE_OBJECT_POOL(struct block, blocks, BLOCK_LIMIT);
-
+int block_mmap(struct file *file, struct file_request *request,
+               struct event_monitor *monitor);
 int block_driver_read(struct block *block, struct file_request *request,
                       struct event_monitor *monitor);
 int block_driver_write(struct block *block, struct file_request *request,
                        struct event_monitor *monitor);
 int block_driver_lseek(struct block *block, struct file_request *request,
                        struct event_monitor *monitor);
+int block_driver_do_mmap(struct block *block, struct file_request *request,
+                         struct event_monitor *monitor);
 int block_request_read(struct block *block, struct file_request *request,
                        struct event_monitor *monitor);
 int block_request_write(struct block *block, struct file_request *request,
                         struct event_monitor *monitor);
 int block_request_lseek(struct block *block, struct file_request *request,
                         struct event_monitor *monitor);
+
+static struct file_operations block_ops = {
+    .deinit = block_deinit,
+    .read = block_readable,
+    .write = block_writable,
+    .lseek = block_lseekable,
+    .mmap = block_mmap,
+};
+
+DECLARE_OBJECT_POOL(struct block, blocks, BLOCK_LIMIT);
 
 int block_driver_readable(struct block *block, struct file_request *request,
                           struct event_monitor *monitor)
@@ -56,6 +61,15 @@ int block_driver_lseekable(struct block *block, struct file_request *request,
 {
     if (block->buzy)
         return block_driver_lseek(block, request, monitor);
+    else
+        return FILE_ACCESS_ERROR;
+}
+
+int block_driver_mmap(struct block *block, struct file_request *request,
+                      struct event_monitor *monitor)
+{
+    if (block->buzy)
+        return block_driver_do_mmap(block, request, monitor);
     else
         return FILE_ACCESS_ERROR;
 }
@@ -98,6 +112,15 @@ int block_driver_lseek(struct block *block, struct file_request *request,
     block->buzy = 0;
     event_monitor_release(monitor, block->event);
     return request->size;
+}
+
+int block_driver_do_mmap(struct block *block, struct file_request *request,
+                         struct event_monitor *monitor)
+{
+    block->transfer_len = (int)request->buf;
+    block->buzy = 0;
+    event_monitor_release(monitor, block->event);
+    return block->transfer_len;
 }
 
 /*
@@ -253,6 +276,42 @@ int block_request_lseekable(struct block *block, struct file_request *request,
     return FILE_ACCESS_BLOCK;
 }
 
+int block_request_mmap(struct block *block, struct file_request *request,
+                       struct event_monitor *monitor)
+{
+    struct task_control_block *task = request->task;
+
+    if (block->request_pid == 0) {
+        /* try to send request */
+        struct file *driver = block->driver_file;
+
+        struct block_request block_request = {
+            .cmd = BLOCK_CMD_MMAP,
+            .task = task->pid,
+            .fd = block->file.fd,
+            .size = request->size,
+            .pos = request->whence,
+        };
+
+        struct file_request file_request = {
+            .task = NULL,
+            .buf = (char *) &block_request,
+            .size = sizeof(block_request),
+        };
+
+        if (file_write(driver, &file_request, monitor) == 1) {
+            block->request_pid = task->pid;
+            block->buzy = 1;
+        }
+    }
+    else if (block->request_pid == task->pid && !block->buzy) {
+        return block->transfer_len;
+    }
+
+    event_monitor_block(monitor, block->event, task);
+    return FILE_ACCESS_BLOCK;
+}
+
 int block_request_read(struct block *block, struct file_request *request,
                        struct event_monitor *monitor)
 {
@@ -301,6 +360,8 @@ int block_event_release(struct event_monitor *monitor, int event,
         return file_write(file, request, monitor);
     case 0x0a:
         return file_lseek(file, request, monitor);
+    case 0x0f:
+        return file_mmap(file, request, monitor);
     default:
         return 0;
     }
@@ -421,6 +482,18 @@ int block_lseek(struct file *file, struct file_request *request,
     }
     else {
         return block_request_lseek(block, request, monitor);
+    }
+}
+
+int block_mmap(struct file *file, struct file_request *request,
+               struct event_monitor *monitor)
+{
+    struct block *block = container_of(file, struct block, file);
+    if (block->driver_pid == request->task->pid) {
+        return block_driver_mmap(block, request, monitor);
+    }
+    else {
+        return block_request_mmap(block, request, monitor);
     }
 }
 

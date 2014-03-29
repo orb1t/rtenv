@@ -7,6 +7,7 @@
 #define BLOCK_CMD_READ 1
 #define BLOCK_CMD_WRITE 2
 #define BLOCK_CMD_SEEK 3
+#define BLOCK_CMD_MMAP 4
 
 struct block {
     struct file file;
