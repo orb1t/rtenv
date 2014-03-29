@@ -3,115 +3,28 @@
 	.fpu softvfp
 	.thumb
 
-.global fork
-fork:
+.macro syscall_define name, num
+.global \name
+\name:
 	push {r7}
-	mov r7, #0x1
+	mov r7, \num
 	svc 0
 	nop
 	pop {r7}
 	bx lr
-.global getpid
-getpid:
-	push {r7}
-	mov r7, #0x2
-	svc 0
-	nop
-	pop {r7}
-	bx lr
-.global write
-write:
-	push {r7}
-	mov r7, #0x3
-	svc 0
-	nop
-	pop {r7}
-	bx lr
-.global read
-read:
-	push {r7}
-	mov r7, #0x4
-	svc 0
-	nop
-	pop {r7}
-	bx lr
-.global interrupt_wait
-interrupt_wait:
-	push {r7}
-	mov r7, #0x5
-	svc 0
-	nop
-	pop {r7}
-	bx lr
-.global getpriority
-getpriority:
-	push {r7}
-	mov r7, #0x6
-	svc 0
-	nop
-	pop {r7}
-	bx lr
-.global setpriority
-setpriority:
-	push {r7}
-	mov r7, #0x7
-	svc 0
-	nop
-	pop {r7}
-	bx lr
-.global mknod
-mknod:
-	push {r7}
-	mov r7, #0x8
-	svc 0
-	nop
-	pop {r7}
-	bx lr
-.global sleep
-sleep:
-	push {r7}
-	mov r7, #0x9
-	svc 0
-	nop
-	pop {r7}
-	bx lr
-.global lseek
-lseek:
-	push {r7}
-	mov r7, #0xa
-	svc 0
-	nop
-	pop {r7}
-	bx lr
-.global setrlimit
-setrlimit:
-	push {r7}
-	mov r7, #0xb
-	svc 0
-	nop
-	pop {r7}
-	bx lr
-.global rmnod
-rmnod:
-	push {r7}
-	mov r7, #0xc
-	svc 0
-	nop
-	pop {r7}
-	bx lr
-.global exit
-exit:
-	push {r7}
-	mov r7, #0xd
-	svc 0
-	nop
-	pop {r7}
-	bx lr
-.global waitpid
-waitpid:
-	push {r7}
-	mov r7, #0xe
-	svc 0
-	nop
-	pop {r7}
-	bx lr
+.endm
+
+syscall_define fork, #0x01
+syscall_define getpid, #0x02
+syscall_define write, #0x03
+syscall_define read, #0x04
+syscall_define interrupt_wait, #0x05
+syscall_define getpriority, #0x06
+syscall_define setpriority, #0x07
+syscall_define mknod, #0x08
+syscall_define sleep, #0x09
+syscall_define lseek, #0x0a
+syscall_define setrlimit, #0x0b
+syscall_define rmnod, #0x0c
+syscall_define exit, #0x0d
+syscall_define waitpid, #0x0e
