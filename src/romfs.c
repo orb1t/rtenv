@@ -84,6 +84,7 @@ void romfs_server()
     char data[REGFILE_BUF];
     struct romfs_file *file;
     struct object_pool_cursor cursor;
+    void *addr;
 
     path_register_fs(ROMFS_TYPE);
 
@@ -185,6 +186,31 @@ void romfs_server()
                 }
                 lseek(target, size, SEEK_SET);
                 break;
+
+            case FS_CMD_MMAP:
+                target = request.target;
+                size = request.size;
+                pos = request.pos;
+
+                /* Find fd */
+                object_pool_for_each(&files, cursor, file) {
+                    if (file->fd == target) {
+                        break;
+                    }
+                }
+                if (object_pool_cursor_end(&files, cursor)) {
+                    mmap((void *)-1, 0, 0, 0, -1, 0);
+                    break;
+                }
+
+                /* Get address from device */
+                addr = mmap(0, size, 0, 0, file->device,
+                            file->start + pos);
+
+                /* Response */
+                mmap(addr, size, 0, 0, target, pos);
+                break;
+
 
             case FS_CMD_CLOSE:
                 target = request.target;
