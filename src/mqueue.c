@@ -8,12 +8,8 @@
 
 static struct file_operations mq_ops = {
     .deinit = mq_deinit,
-    .readable = mq_readable,
-    .writable = mq_writable,
-    .read = mq_read,
-    .write = mq_write,
-    .lseekable = NULL,
-    .lseek = NULL,
+    .read = mq_readable,
+    .write = mq_writable,
 };
 
 DECLARE_OBJECT_POOL(struct pipe_ringbuffer, mqueues, MQUEUE_LIMIT);
@@ -87,7 +83,7 @@ mq_readable(struct file *file, struct file_request *request,
         /* Trying to read more than buffer size */
         return FILE_ACCESS_ERROR;
     }
-    return FILE_ACCESS_ACCEPT;
+    return mq_read(file, request, monitor);
 }
 
 int
@@ -108,7 +104,7 @@ mq_writable(struct file *file, struct file_request *request,
         event_monitor_block(monitor, pipe->write_event, request->task);
         return FILE_ACCESS_BLOCK;
     }
-    return FILE_ACCESS_ACCEPT;
+    return mq_write(file, request, monitor);
 }
 
 int

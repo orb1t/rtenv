@@ -13,21 +13,31 @@ struct block_response {
 
 static struct file_operations block_ops = {
     .deinit = block_deinit,
-    .readable = block_readable,
-    .writable = block_writable,
-    .read = block_read,
-    .write = block_write,
-    .lseekable = block_lseekable,
-    .lseek = block_lseek,
+    .read = block_readable,
+    .write = block_writable,
+    .lseek = block_lseekable,
 };
 
 DECLARE_OBJECT_POOL(struct block, blocks, BLOCK_LIMIT);
+
+int block_driver_read(struct block *block, struct file_request *request,
+                      struct event_monitor *monitor);
+int block_driver_write(struct block *block, struct file_request *request,
+                       struct event_monitor *monitor);
+int block_driver_lseek(struct block *block, struct file_request *request,
+                       struct event_monitor *monitor);
+int block_request_read(struct block *block, struct file_request *request,
+                       struct event_monitor *monitor);
+int block_request_write(struct block *block, struct file_request *request,
+                        struct event_monitor *monitor);
+int block_request_lseek(struct block *block, struct file_request *request,
+                        struct event_monitor *monitor);
 
 int block_driver_readable(struct block *block, struct file_request *request,
                           struct event_monitor *monitor)
 {
     if (block->buzy)
-        return FILE_ACCESS_ACCEPT;
+        return block_driver_read(block, request, monitor);
     else
         return FILE_ACCESS_ERROR;
 }
@@ -36,7 +46,7 @@ int block_driver_writable(struct block *block, struct file_request *request,
                           struct event_monitor *monitor)
 {
     if (block->buzy)
-        return FILE_ACCESS_ACCEPT;
+        return block_driver_write(block, request, monitor);
     else
         return FILE_ACCESS_ERROR;
 }
@@ -45,7 +55,7 @@ int block_driver_lseekable(struct block *block, struct file_request *request,
                            struct event_monitor *monitor)
 {
     if (block->buzy)
-        return FILE_ACCESS_ACCEPT;
+        return block_driver_lseek(block, request, monitor);
     else
         return FILE_ACCESS_ERROR;
 }
@@ -130,7 +140,7 @@ int block_request_readable(struct block *block, struct file_request *request,
         }
     }
     else if (block->request_pid == task->pid && !block->buzy) {
-        return FILE_ACCESS_ACCEPT;
+        return block_request_read(block, request, monitor);
     }
 
     event_monitor_block(monitor, block->event, task);
@@ -182,7 +192,7 @@ int block_request_writable(struct block *block, struct file_request *request,
         }
     }
     else if (block->request_pid == task->pid && !block->buzy) {
-        return FILE_ACCESS_ACCEPT;
+        return block_request_write(block, request, monitor);
     }
 
     event_monitor_block(monitor, block->event, task);
@@ -236,7 +246,7 @@ int block_request_lseekable(struct block *block, struct file_request *request,
         }
     }
     else if (block->request_pid == task->pid && !block->buzy) {
-        return FILE_ACCESS_ACCEPT;
+        return block_request_lseek(block, request, monitor);
     }
 
     event_monitor_block(monitor, block->event, task);

@@ -88,13 +88,12 @@ int file_read(struct file *file, struct file_request *request,
 {
     struct task_control_block *task = request->task;
 
-    if (file) {
-        switch (file->ops->readable(file, request, monitor)) {
-        case FILE_ACCESS_ACCEPT: {
-            int size = file->ops->read(file, request, monitor);
-
+    if (file && file->ops->read) {
+        int status = file->ops->read(file, request, monitor);
+        switch (status) {
+        default: {
             if (task) {
-                task->stack->r0 = size;
+                task->stack->r0 = status;
                 task->status = TASK_READY;
             }
 
@@ -107,7 +106,6 @@ int file_read(struct file *file, struct file_request *request,
 
             return 0;
         case FILE_ACCESS_ERROR:
-        default:
             ;
         }
     }
@@ -125,13 +123,12 @@ int file_write(struct file *file, struct file_request *request,
 {
     struct task_control_block *task = request->task;
 
-    if (file) {
-        switch (file->ops->writable(file, request, monitor)) {
-        case FILE_ACCESS_ACCEPT: {
-            int size = file->ops->write(file, request, monitor);
-
+    if (file && file->ops->write) {
+        int status = file->ops->write(file, request, monitor);
+        switch (status) {
+        default: {
             if (task) {
-                task->stack->r0 = size;
+                task->stack->r0 = status;
                 task->status = TASK_READY;
             }
 
@@ -144,7 +141,6 @@ int file_write(struct file *file, struct file_request *request,
 
             return 0;
         case FILE_ACCESS_ERROR:
-        default:
             ;
         }
     }
@@ -216,11 +212,10 @@ int file_lseek(struct file *file, struct file_request *request,
 {
     struct task_control_block *task = request->task;
 
-    if (file && file->ops->lseekable && file->ops->lseek) {
-        switch (file->ops->lseekable(file, request, monitor)) {
-        case FILE_ACCESS_ACCEPT: {
-            int status = file->ops->lseek(file, request, monitor);
-
+    if (file && file->ops->lseek) {
+        int status = file->ops->lseek(file, request, monitor);
+        switch (status) {
+        default: {
             if (task) {
                 task->stack->r0 = status;
                 task->status = TASK_READY;
@@ -235,7 +230,6 @@ int file_lseek(struct file *file, struct file_request *request,
 
             return 0;
         case FILE_ACCESS_ERROR:
-        default:
             ;
         }
     }

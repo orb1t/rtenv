@@ -20,8 +20,7 @@
 #define SEEK_CUR 2
 #define SEEK_END 3
 
-#define FILE_ACCESS_ACCEPT 1
-#define FILE_ACCESS_BLOCK  0
+#define FILE_ACCESS_BLOCK -2
 #define FILE_ACCESS_ERROR -1
 
 #define FILE_EVENT_READ(fd) ((fd) * 2)
@@ -43,11 +42,8 @@ struct file {
 
 struct file_operations {
     int (*deinit)(struct file*, struct file_request*, struct event_monitor *);
-    int (*readable)(struct file*, struct file_request*, struct event_monitor *);
-    int (*writable)(struct file*, struct file_request*, struct event_monitor *);
     int (*read)(struct file*, struct file_request*, struct event_monitor *);
     int (*write)(struct file*, struct file_request*, struct event_monitor *);
-    int (*lseekable)(struct file*, struct file_request*, struct event_monitor *);
     int (*lseek)(struct file*, struct file_request*, struct event_monitor *);
 };
 
@@ -66,5 +62,7 @@ int file_rmnod(struct file *file, struct file_request *request,
                struct event_monitor *monitor, struct file *files[]);
 int file_lseek(struct file *file, struct file_request *request,
                struct event_monitor *monitor);
+int file_mmap(struct file *file, struct file_request *request,
+              struct event_monitor *monitor);
 
 #endif

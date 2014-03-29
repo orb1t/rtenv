@@ -12,22 +12,38 @@ struct regfile_response {
 
 static struct file_operations regfile_ops = {
     .deinit = regfile_deinit,
-    .readable = regfile_readable,
-    .writable = regfile_writable,
-    .read = regfile_read,
-    .write = regfile_write,
-    .lseekable = regfile_lseekable,
-    .lseek = regfile_lseek,
+    .read = regfile_readable,
+    .write = regfile_writable,
+    .lseek = regfile_lseekable,
 };
 
 DECLARE_OBJECT_POOL(struct regfile, regfiles, REGFILE_LIMIT);
+
+int regfile_driver_read(struct regfile *regfile,
+                        struct file_request *request,
+                        struct event_monitor *monitor);
+int regfile_driver_write(struct regfile *regfile,
+                         struct file_request *request,
+                         struct event_monitor *monitor);
+int regfile_driver_lseek(struct regfile *regfile,
+                         struct file_request *request,
+                         struct event_monitor *monitor);
+int regfile_request_read(struct regfile *regfile,
+                         struct file_request *request,
+                         struct event_monitor *monitor);
+int regfile_request_write(struct regfile *regfile,
+                          struct file_request *request,
+                          struct event_monitor *monitor);
+int regfile_request_lseek(struct regfile *regfile,
+                          struct file_request *request,
+                          struct event_monitor *monitor);
 
 int regfile_driver_readable(struct regfile *regfile,
                             struct file_request *request,
                             struct event_monitor *monitor)
 {
     if (regfile->buzy)
-        return FILE_ACCESS_ACCEPT;
+        return regfile_driver_read(regfile, request, monitor);
     else
         return FILE_ACCESS_ERROR;
 }
@@ -37,7 +53,7 @@ int regfile_driver_writable(struct regfile *regfile,
                             struct event_monitor *monitor)
 {
     if (regfile->buzy)
-        return FILE_ACCESS_ACCEPT;
+        return regfile_driver_write(regfile, request, monitor);
     else
         return FILE_ACCESS_ERROR;
 }
@@ -47,7 +63,7 @@ int regfile_driver_lseekable(struct regfile *regfile,
                              struct event_monitor *monitor)
 {
     if (regfile->buzy)
-        return FILE_ACCESS_ACCEPT;
+        return regfile_driver_lseek(regfile, request, monitor);
     else
         return FILE_ACCESS_ERROR;
 }
@@ -132,7 +148,7 @@ int regfile_request_readable(struct regfile *regfile,
         }
     }
     else if (regfile->request_pid == task->pid && !regfile->buzy) {
-        return FILE_ACCESS_ACCEPT;
+        return regfile_request_read(regfile, request, monitor);
     }
 
     event_monitor_block(monitor, regfile->event, task);
@@ -185,7 +201,7 @@ int regfile_request_writable(struct regfile *regfile,
         }
     }
     else if (regfile->request_pid == task->pid && !regfile->buzy) {
-        return FILE_ACCESS_ACCEPT;
+        return regfile_request_write(regfile, request, monitor);
     }
 
     event_monitor_block(monitor, regfile->event, task);
@@ -240,7 +256,7 @@ int regfile_request_lseekable(struct regfile *regfile,
         }
     }
     else if (regfile->request_pid == task->pid && !regfile->buzy) {
-        return FILE_ACCESS_ACCEPT;
+        return regfile_request_lseek(regfile, request, monitor);
     }
 
     event_monitor_block(monitor, regfile->event, task);

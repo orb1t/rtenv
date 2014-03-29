@@ -7,12 +7,8 @@
 
 static struct file_operations fifo_ops = {
     .deinit = fifo_deinit,
-    .readable = fifo_readable,
-    .writable = fifo_writable,
-    .read = fifo_read,
-    .write = fifo_write,
-    .lseekable = NULL,
-    .lseek = NULL,
+    .read = fifo_readable,
+    .write = fifo_writable,
 };
 
 DECLARE_OBJECT_POOL(struct pipe_ringbuffer, fifos, FIFO_LIMIT);
@@ -80,7 +76,7 @@ fifo_readable(struct file *file, struct file_request *request,
         event_monitor_block(monitor, pipe->read_event, request->task);
         return FILE_ACCESS_BLOCK;
     }
-    return FILE_ACCESS_ACCEPT;
+    return fifo_read(file, request, monitor);
 }
 
 int
@@ -100,7 +96,7 @@ fifo_writable(struct file *file, struct file_request *request,
         event_monitor_block(monitor, pipe->write_event, request->task);
         return FILE_ACCESS_BLOCK;
     }
-    return FILE_ACCESS_ACCEPT;
+    return fifo_write(file, request, monitor);
 }
 
 int
