@@ -242,3 +242,38 @@ int file_lseek(struct file *file, struct file_request *request,
     return -1;
 }
 
+int file_mmap(struct file *file, struct file_request *request,
+              struct event_monitor *monitor)
+{
+    struct task_control_block *task = request->task;
+
+    if (file && file->ops->mmap) {
+        int status = file->ops->mmap(file, request, monitor);
+        switch (status) {
+        default: {
+            if (task) {
+                task->stack->r0 = status;
+                task->status = TASK_READY;
+            }
+
+            return 1;
+        }
+        case FILE_ACCESS_BLOCK:
+            if (task && task->status == TASK_READY) {
+                request->task->status = TASK_WAIT_WRITE;
+            }
+
+            return 0;
+        case FILE_ACCESS_ERROR:
+            ;
+        }
+    }
+
+    if (task) {
+        task->stack->r0 = -1;
+        task->status = TASK_READY;
+    }
+
+    return -1;
+}
+

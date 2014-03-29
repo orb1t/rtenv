@@ -28,3 +28,4 @@ syscall_define setrlimit, #0x0b
 syscall_define rmnod, #0x0c
 syscall_define exit, #0x0d
 syscall_define waitpid, #0x0e
+syscall_define mmap, #0x0f

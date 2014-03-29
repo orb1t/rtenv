@@ -45,6 +45,7 @@ struct file_operations {
     int (*read)(struct file*, struct file_request*, struct event_monitor *);
     int (*write)(struct file*, struct file_request*, struct event_monitor *);
     int (*lseek)(struct file*, struct file_request*, struct event_monitor *);
+    int (*mmap)(struct file*, struct file_request*, struct event_monitor *);
 };
 
 int mkfile(const char *pathname, int mode, int dev);

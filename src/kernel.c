@@ -212,6 +212,27 @@ void kernel_lseek()
     }
 }
 
+void kernel_mmap()
+{
+    /* Check fd is valid */
+    int fd = get_syscall_arg(current_task->stack, 5);
+    if (fd < FILE_LIMIT && files[fd]) {
+        struct file_request *request = &requests[current_task->pid];
+        /* Prepare file request, store reference in r0 */
+        request->task = current_task;
+        request->buf = (void *)current_task->stack->r0;
+        request->size = current_task->stack->r1;
+        request->whence = get_syscall_arg(current_task->stack, 6);
+        current_task->stack->r0 = (int)request;
+
+        /* Read */
+        file_mmap(files[fd], request, &event_monitor);
+    }
+    else {
+        current_task->stack->r0 = -1;
+    }
+}
+
 void kernel_interrupt_wait()
 {
     /* Enable interrupt */
@@ -402,6 +423,7 @@ void (*syscall_table[])() = {
     kernel_rmnod,
     kernel_exit,
     kernel_waitpid,
+    kernel_mmap,
 };
 
 

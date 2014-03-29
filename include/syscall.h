@@ -25,3 +25,5 @@ int setrlimit(int resource, const struct rlimit *rlp);
 
 void exit(int status);
 int waitpid(int pid, int *status, int options);
+
+void mmap(void *addr, size_t len, int prot, int flags, int fd, int off);
