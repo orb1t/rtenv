@@ -68,6 +68,22 @@ void romdev_driver()
                 lseek(fd, request_len, SEEK_SET);
                 break;
 
+            case BLOCK_CMD_MMAP:
+                fd = request.fd;
+                size = request.size;
+                pos = request.pos;
+
+                /* Check boundary */
+                request_start = &_sromdev + pos;
+                request_end = request_start + size;
+                if (request_start < &_sromdev || request_start > &_eromdev
+                        || request_end < &_sromdev || request_end > &_eromdev)
+                    mmap((void *)-1, -1, 0, 0, fd, -1);
+
+                /* Response */
+                mmap((void *)request_start, size, 0, 0, fd, 0);
+                break;
+
             case BLOCK_CMD_WRITE: /* readonly */
             default:
                 block_response(fd, NULL, -1);
