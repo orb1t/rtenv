@@ -6,7 +6,7 @@
 #include "object-pool.h"
 
 struct stack {
-    char data [STACK_DEFAULT_SIZE];
+    char data [STACK_CHUNK_SIZE];
 };
 
 struct stack_pool {
