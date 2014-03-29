@@ -46,6 +46,8 @@ int exit_release(struct event_monitor *monitor, int event,
     return 1;
 }
 
+
+
 /* System resources */
 DECLARE_OBJECT_POOL(struct task_control_block, tasks, TASK_LIMIT);
 DECLARE_OBJECT_POOL(struct stack, stacks, STACK_LIMIT);
@@ -55,21 +57,336 @@ struct file_request requests[TASK_LIMIT];
 struct list ready_list[PRIORITY_LIMIT + 1];  /* [0 ... 39] */
 
 DECLARE_OBJECT_POOL(struct event, events, EVENT_LIMIT);
+struct stack_pool stack_pool;
+struct memory_pool memory_pool;
+struct event_monitor event_monitor;
 
+
+
+/* Global variables */
+struct task_control_block *current_task;
+unsigned int tick_count;
+int timeup;
+
+
+
+/* System calls */
+void kernel_fork()
+{
+    struct task_control_block *task;
+    size_t stack_size;
+    void *stack;
+
+    /* Get new task */
+    task = object_pool_allocate(&tasks);
+    if (!task) {
+        current_task->stack->r0 = -1;
+        return;
+    }
+
+    /* Get new stack */
+    /* Compute how much of the stack is used */
+    size_t used = current_task->stack_end - (void *)current_task->stack;
+    /* New stack is END - used */
+    stack_size = current_task->stack_end - current_task->stack_start;
+    stack = stack_pool_allocate(&stack_pool, stack_size);
+    if (!stack) {
+        object_pool_free(&tasks, task);
+        current_task->stack->r0 = -1;
+        return;
+    }
+
+    /* Setup stack */
+    task->stack = stack + stack_size - used;
+    task->stack_start = stack;
+    task->stack_end = stack + stack_size;
+    /* Copy only the used part of the stack */
+    memcpy(task->stack, current_task->stack, used);
+    /* Set PID */
+    task->pid = object_pool_find(&tasks, task);
+    /* Set priority, inherited from forked task */
+    task->priority = current_task->priority;
+    /* Clear exit event */
+    task->exit_event = -1;
+    /* Set return values in each process */
+    current_task->stack->r0 = task->pid;
+    task->stack->r0 = 0;
+    /* Push to ready list */
+    list_init(&task->list);
+    list_push(&ready_list[task->priority], &task->list);
+}
+
+void kernel_getpid()
+{
+    current_task->stack->r0 = current_task->pid;
+}
+
+void kernel_write()
+{
+    /* Check fd is valid */
+    int fd = current_task->stack->r0;
+    if (fd < FILE_LIMIT && files[fd]) {
+        struct file_request *request = &requests[current_task->pid];
+        /* Prepare file request, store reference in r0 */
+        request->task = current_task;
+        request->buf = (void *)current_task->stack->r1;
+        request->size = current_task->stack->r2;
+        current_task->stack->r0 = (int)request;
+
+        /* Write */
+        file_write(files[fd], request, &event_monitor);
+    }
+    else {
+        current_task->stack->r0 = -1;
+    }
+}
+
+void kernel_read()
+{
+    /* Check fd is valid */
+    int fd = current_task->stack->r0;
+    if (fd < FILE_LIMIT && files[fd]) {
+        struct file_request *request = &requests[current_task->pid];
+        /* Prepare file request, store reference in r0 */
+        request->task = current_task;
+        request->buf = (void *)current_task->stack->r1;
+        request->size = current_task->stack->r2;
+        current_task->stack->r0 = (int)request;
+
+        /* Read */
+        file_read(files[fd], request, &event_monitor);
+    }
+    else {
+        current_task->stack->r0 = -1;
+    }
+}
+
+void kernel_lseek()
+{
+    /* Check fd is valid */
+    int fd = current_task->stack->r0;
+    if (fd < FILE_LIMIT && files[fd]) {
+        struct file_request *request = &requests[current_task->pid];
+        /* Prepare file request, store reference in r0 */
+        request->task = current_task;
+        request->buf = NULL;
+        request->size = current_task->stack->r1;
+        request->whence = current_task->stack->r2;
+        current_task->stack->r0 = (int)request;
+
+        /* Read */
+        file_lseek(files[fd], request, &event_monitor);
+    }
+    else {
+        current_task->stack->r0 = -1;
+    }
+}
+
+void kernel_interrupt_wait()
+{
+    /* Enable interrupt */
+    NVIC_EnableIRQ(current_task->stack->r0);
+    /* Block task waiting for interrupt to happen */
+    event_monitor_block(&event_monitor,
+                        INTR_EVENT(current_task->stack->r0),
+                        current_task);
+    current_task->status = TASK_WAIT_INTR;
+}
+
+void kernel_getpriority()
+{
+    struct task_control_block *task;
+
+    int who = current_task->stack->r0;
+    if (who == 0) {
+        current_task->stack->r0 = current_task->priority;
+    }
+    else {
+        task = object_pool_get(&tasks, who);
+        if (task)
+            current_task->stack->r0 = task->priority;
+        else
+            current_task->stack->r0 = -1;
+    }
+}
+
+void kernel_setpriority()
+{
+    struct task_control_block *task;
+
+    int who = current_task->stack->r0;
+    int value = current_task->stack->r1;
+    value = (value < 0) ? 0
+            : ((value > PRIORITY_LIMIT) ? PRIORITY_LIMIT : value);
+    if (who == 0) {
+        current_task->priority = value;
+        list_unshift(&ready_list[value], &current_task->list);
+    }
+    else {
+        task = object_pool_get(&tasks, who);
+        if (task) {
+            task->priority = value;
+            if (task->status == TASK_READY)
+                list_push(&ready_list[value], &task->list);
+        }
+        else {
+            current_task->stack->r0 = -1;
+            return;
+        }
+    }
+    current_task->stack->r0 = 0;
+}
+
+void kernel_mknod()
+{
+    current_task->stack->r0 =
+        file_mknod(current_task->stack->r0,
+                   current_task->pid,
+                   files,
+                   current_task->stack->r2,
+                   &memory_pool,
+                   &event_monitor);
+}
+
+void kernel_rmnod()
+{
+    /* Check fd is valid */
+    int fd = current_task->stack->r0;
+    if (fd < FILE_LIMIT && files[fd]) {
+        struct file_request *request = &requests[current_task->pid];
+        /* Prepare file request, store reference in r0 */
+        request->task = current_task;
+        current_task->stack->r0 = (int)request;
+
+        file_rmnod(files[fd], request, &event_monitor, files);
+    }
+    else {
+        current_task->stack->r0 = -1;
+    }
+}
+
+void kernel_sleep()
+{
+    if (current_task->stack->r0 != 0) {
+        current_task->stack->r0 += tick_count;
+        event_monitor_block(&event_monitor, TIME_EVENT, current_task);
+        current_task->status = TASK_WAIT_TIME;
+    }
+}
+
+void kernel_setrlimit()
+{
+    void *stack;
+
+    unsigned int resource = current_task->stack->r0;
+    if (resource == RLIMIT_STACK) {
+        struct rlimit *rlimit = (void *)current_task->stack->r1;
+        size_t used = current_task->stack_end
+                    - (void *)current_task->stack;
+        size_t size = rlimit->rlim_cur;
+        stack = stack_pool_relocate(&stack_pool, &size,
+                                    current_task->stack_start);
+        if (stack) {
+            current_task->stack_start = stack;
+            current_task->stack_end = stack + size;
+            current_task->stack = current_task->stack_end - used;
+        }
+        else {
+            current_task->stack->r0 = -1;
+        }
+    }
+    else {
+        current_task->stack->r0 = -1;
+    }
+}
+
+void kernel_exit()
+{
+    list_remove(&current_task->list);
+    stack_pool_free(&stack_pool, current_task->stack_start);
+    current_task->pid = -1;
+    if (current_task->exit_event != -1)
+        event_monitor_release(&event_monitor, current_task->exit_event);
+    object_pool_free(&tasks, current_task);
+
+    current_task = NULL;
+}
+
+void kernel_waitpid()
+{
+    struct task_control_block *task;
+    int pid = current_task->stack->r0;
+
+    task = object_pool_get(&tasks, pid);
+    if (task) {
+        if (task->exit_event == -1) {
+            /* Allocate if does not have one */
+            struct event *event = event_monitor_allocate(&event_monitor, exit_release, &task->status);
+            task->exit_event = event_monitor_find(&event_monitor, event);
+        }
+        if (task->exit_event != -1) {
+            event_monitor_block(&event_monitor, task->exit_event, current_task);
+            current_task->status = TASK_WAIT_CHILD;
+            return;
+        }
+    }
+
+    /* Failed to wait */
+    current_task->stack->r0 = -1;
+    current_task->status = TASK_READY;
+}
+
+void kernel_interrupt_handler()
+{
+    unsigned int intr = -current_task->stack->r7 - 16;
+
+    if (intr == SysTick_IRQn) {
+        /* Never disable timer. We need it for pre-emption */
+        timeup = 1;
+        tick_count++;
+        event_monitor_release(&event_monitor, TIME_EVENT);
+    }
+    else {
+        /* Disable interrupt, interrupt_wait re-enables */
+        NVIC_DisableIRQ(intr);
+    }
+    event_monitor_release(&event_monitor, INTR_EVENT(intr));
+}
+
+
+
+/* System call table */
+void (*syscall_table[])() = {
+    NULL,
+    kernel_fork,
+    kernel_getpid,
+    kernel_write,
+    kernel_read,
+    kernel_interrupt_wait,
+    kernel_getpriority,
+    kernel_setpriority,
+    kernel_mknod,
+    kernel_sleep,
+    kernel_lseek,
+    kernel_setrlimit,
+    kernel_rmnod,
+    kernel_exit,
+    kernel_waitpid,
+};
+
+
+
+/* System start point */
 int main()
 {
-    struct stack_pool stack_pool;
-    struct memory_pool memory_pool;
-    struct event_monitor event_monitor;
-    struct task_control_block *current_task;
     int i;
     struct list *list;
     struct task_control_block *task;
-    int timeup;
-    unsigned int tick_count = 0;
     void *stack;
     size_t stack_size;
+    int syscall_number;
 
+    tick_count = 0;
     SysTick_Config(configCPU_CLOCK_HZ / configTICK_RATE_HZ);
 
     init_rs232();
@@ -126,257 +443,15 @@ int main()
         task_stat_hook(tasks.data, current_task->pid);
 #endif /* USE_TASK_STAT_HOOK */
 
-        switch (current_task->stack->r7) {
-        case 0x1: /* fork */
-            /* Get new task */
-            task = object_pool_allocate(&tasks);
-            if (!task) {
-                current_task->stack->r0 = -1;
-                break;
-            }
-
-            /* Get new stack */
-            /* Compute how much of the stack is used */
-            size_t used = current_task->stack_end - (void *)current_task->stack;
-            /* New stack is END - used */
-            stack_size = current_task->stack_end - current_task->stack_start;
-            stack = stack_pool_allocate(&stack_pool, stack_size);
-            if (!stack) {
-                object_pool_free(&tasks, task);
-                current_task->stack->r0 = -1;
-                break;
-            }
-
-            /* Setup stack */
-            task->stack = stack + stack_size - used;
-            task->stack_start = stack;
-            task->stack_end = stack + stack_size;
-            /* Copy only the used part of the stack */
-            memcpy(task->stack, current_task->stack, used);
-            /* Set PID */
-            task->pid = object_pool_find(&tasks, task);
-            /* Set priority, inherited from forked task */
-            task->priority = current_task->priority;
-            /* Clear exit event */
-            task->exit_event = -1;
-            /* Set return values in each process */
-            current_task->stack->r0 = task->pid;
-            task->stack->r0 = 0;
-            /* Push to ready list */
-            list_init(&task->list);
-            list_push(&ready_list[task->priority], &task->list);
-            break;
-        case 0x2: /* getpid */
-            current_task->stack->r0 = current_task->pid;
-            break;
-        case 0x3: { /* write */
-            /* Check fd is valid */
-            int fd = current_task->stack->r0;
-            if (fd < FILE_LIMIT && files[fd]) {
-                struct file_request *request = &requests[current_task->pid];
-                /* Prepare file request, store reference in r0 */
-                request->task = current_task;
-                request->buf = (void *)current_task->stack->r1;
-                request->size = current_task->stack->r2;
-                current_task->stack->r0 = (int)request;
-
-                /* Write */
-                file_write(files[fd], request, &event_monitor);
-            }
-            else {
-                current_task->stack->r0 = -1;
+        /* Handle system call */
+        syscall_number = (int)current_task->stack->r7;
+        if (syscall_number > 0 && syscall_number < array_size(syscall_table)) {
+            if (syscall_table[syscall_number]) {
+                syscall_table[syscall_number]();
             }
         }
-        break;
-        case 0x4: { /* read */
-            /* Check fd is valid */
-            int fd = current_task->stack->r0;
-            if (fd < FILE_LIMIT && files[fd]) {
-                struct file_request *request = &requests[current_task->pid];
-                /* Prepare file request, store reference in r0 */
-                request->task = current_task;
-                request->buf = (void *)current_task->stack->r1;
-                request->size = current_task->stack->r2;
-                current_task->stack->r0 = (int)request;
-
-                /* Read */
-                file_read(files[fd], request, &event_monitor);
-            }
-            else {
-                current_task->stack->r0 = -1;
-            }
-        }
-        break;
-        case 0x5: /* interrupt_wait */
-            /* Enable interrupt */
-            NVIC_EnableIRQ(current_task->stack->r0);
-            /* Block task waiting for interrupt to happen */
-            event_monitor_block(&event_monitor,
-                                INTR_EVENT(current_task->stack->r0),
-                                current_task);
-            current_task->status = TASK_WAIT_INTR;
-            break;
-        case 0x6: { /* getpriority */
-            int who = current_task->stack->r0;
-            if (who == 0) {
-                current_task->stack->r0 = current_task->priority;
-            }
-            else {
-                task = object_pool_get(&tasks, who);
-                if (task)
-                    current_task->stack->r0 = task->priority;
-                else
-                    current_task->stack->r0 = -1;
-            }
-        }
-        break;
-        case 0x7: { /* setpriority */
-            int who = current_task->stack->r0;
-            int value = current_task->stack->r1;
-            value = (value < 0) ? 0
-                    : ((value > PRIORITY_LIMIT) ? PRIORITY_LIMIT : value);
-            if (who == 0) {
-                current_task->priority = value;
-                list_unshift(&ready_list[value], &current_task->list);
-            }
-            else {
-                task = object_pool_get(&tasks, who);
-                if (task) {
-                    task->priority = value;
-                    if (task->status == TASK_READY)
-                        list_push(&ready_list[value], &task->list);
-                }
-                else {
-                    current_task->stack->r0 = -1;
-                    break;
-                }
-            }
-            current_task->stack->r0 = 0;
-        }
-        break;
-        case 0x8: /* mknod */
-            current_task->stack->r0 =
-                file_mknod(current_task->stack->r0,
-                           current_task->pid,
-                           files,
-                           current_task->stack->r2,
-                           &memory_pool,
-                           &event_monitor);
-            break;
-        case 0x9: /* sleep */
-            if (current_task->stack->r0 != 0) {
-                current_task->stack->r0 += tick_count;
-                event_monitor_block(&event_monitor, TIME_EVENT, current_task);
-                current_task->status = TASK_WAIT_TIME;
-            }
-            break;
-        case 0xa: { /* lseek */
-            /* Check fd is valid */
-            int fd = current_task->stack->r0;
-            if (fd < FILE_LIMIT && files[fd]) {
-                struct file_request *request = &requests[current_task->pid];
-                /* Prepare file request, store reference in r0 */
-                request->task = current_task;
-                request->buf = NULL;
-                request->size = current_task->stack->r1;
-                request->whence = current_task->stack->r2;
-                current_task->stack->r0 = (int)request;
-
-                /* Read */
-                file_lseek(files[fd], request, &event_monitor);
-            }
-            else {
-                current_task->stack->r0 = -1;
-            }
-        }
-        break;
-        case 0xb: { /* setrlimit */
-            unsigned int resource = current_task->stack->r0;
-            if (resource == RLIMIT_STACK) {
-                struct rlimit *rlimit = (void *)current_task->stack->r1;
-                size_t used = current_task->stack_end
-                            - (void *)current_task->stack;
-                size_t size = rlimit->rlim_cur;
-                stack = stack_pool_relocate(&stack_pool, &size,
-                                            current_task->stack_start);
-                if (stack) {
-                    current_task->stack_start = stack;
-                    current_task->stack_end = stack + size;
-                    current_task->stack = current_task->stack_end - used;
-                }
-                else {
-                    current_task->stack->r0 = -1;
-                }
-            }
-            else {
-                current_task->stack->r0 = -1;
-            }
-        }
-        break;
-        case 0xc: { /* rmnod */
-            /* Check fd is valid */
-            int fd = current_task->stack->r0;
-            if (fd < FILE_LIMIT && files[fd]) {
-                struct file_request *request = &requests[current_task->pid];
-                /* Prepare file request, store reference in r0 */
-                request->task = current_task;
-                current_task->stack->r0 = (int)request;
-
-                file_rmnod(files[fd], request, &event_monitor, files);
-            }
-            else {
-                current_task->stack->r0 = -1;
-            }
-        }   break;
-        case 0xd: { /* exit */
-            list_remove(&current_task->list);
-            stack_pool_free(&stack_pool, current_task->stack_start);
-            current_task->pid = -1;
-            if (current_task->exit_event != -1)
-                event_monitor_release(&event_monitor, current_task->exit_event);
-            object_pool_free(&tasks, current_task);
-
-            current_task = NULL;
-        }
-        break;
-        case 0xe: { /* waitpid */
-            int pid = current_task->stack->r0;
-
-            task = object_pool_get(&tasks, pid);
-            if (task) {
-                if (task->exit_event == -1) {
-                    /* Allocate if does not have one */
-                    struct event *event = event_monitor_allocate(&event_monitor, exit_release, &task->status);
-                    task->exit_event = event_monitor_find(&event_monitor, event);
-                }
-                if (task->exit_event != -1) {
-                    event_monitor_block(&event_monitor, task->exit_event, current_task);
-                    current_task->status = TASK_WAIT_CHILD;
-                    break;
-                }
-            }
-
-            /* Failed to wait */
-            current_task->stack->r0 = -1;
-            current_task->status = TASK_READY;
-        }
-        break;
-        default: /* Catch all interrupts */
-            if ((int)current_task->stack->r7 < 0) {
-                unsigned int intr = -current_task->stack->r7 - 16;
-
-                if (intr == SysTick_IRQn) {
-                    /* Never disable timer. We need it for pre-emption */
-                    timeup = 1;
-                    tick_count++;
-                    event_monitor_release(&event_monitor, TIME_EVENT);
-                }
-                else {
-                    /* Disable interrupt, interrupt_wait re-enables */
-                    NVIC_DisableIRQ(intr);
-                }
-                event_monitor_release(&event_monitor, INTR_EVENT(intr));
-            }
+        else if (syscall_number < 0){
+            kernel_interrupt_handler();
         }
 
         /* Rearrange ready list and event list */

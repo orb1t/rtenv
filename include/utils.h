@@ -6,4 +6,7 @@
 #define container_of(ptr, type, member) \
     ((type *)(((void *)ptr) - offsetof(type, member)))
 
+#define array_size(arr) \
+    (sizeof(arr) / sizeof(*(arr)))
+
 #endif
