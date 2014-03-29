@@ -8,6 +8,7 @@
 #define FS_CMD_WRITE 3
 #define FS_CMD_SEEK 4
 #define FS_CMD_CLOSE 5
+#define FS_CMD_MMAP 6
 
 struct fs_request {
     int cmd;
