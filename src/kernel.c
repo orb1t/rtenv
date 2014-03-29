@@ -70,6 +70,36 @@ int timeup;
 
 
 
+int scb_ccr_get_stkalign()
+{
+    return !!(SCB->CCR & SCB_CCR_STKALIGN_Msk);
+}
+
+unsigned int *get_user_stack(struct user_thread_stack *stack)
+{
+    int reserved;
+
+#ifdef IGNORE_STACK_ALIGN
+    reserved = 1;
+#else
+    reserved = (stack->xpsr & (1 << 9)) && scb_ccr_get_stkalign();
+#endif
+
+    return &stack->stack + reserved;
+}
+
+unsigned int get_syscall_arg(struct user_thread_stack *stack, int n)
+{
+    n--;
+
+    if (n < 4)
+        return (&stack->r0)[n];
+    else
+        return get_user_stack(stack)[n - 4 + 1];    /* 0 is reserved for r7 */
+}
+
+
+
 /* System calls */
 void kernel_fork()
 {
