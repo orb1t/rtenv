@@ -305,6 +305,7 @@ int block_request_mmap(struct block *block, struct file_request *request,
         }
     }
     else if (block->request_pid == task->pid && !block->buzy) {
+        block->request_pid = 0;
         return block->transfer_len;
     }
 

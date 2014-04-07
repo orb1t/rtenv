@@ -319,6 +319,7 @@ int regfile_request_mmap(struct regfile *regfile,
         }
     }
     else if (regfile->request_pid == task->pid && !regfile->buzy) {
+        regfile->request_pid = 0;
         return regfile->transfer_len;
     }
 
