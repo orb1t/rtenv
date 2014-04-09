@@ -5,8 +5,11 @@
 #include "syscall.h"
 #include "fs.h"
 #include "object-pool.h"
+#include "module.h"
+#include "kernel.h"
 
 
+#define PATH_STACK_SIZE 1024
 
 struct mount {
     int fs;
@@ -21,7 +24,26 @@ struct path {
     int ref_count;
 };
 
+
+void pathserver();
+void path_module_init();
+
+MODULE_DECLARE(path, path_module_init);
 DECLARE_OBJECT_POOL(struct path, paths, PATH_LIMIT);
+
+void path_module_init()
+{
+    int pid;
+    struct task_control_block *task;
+
+    pid = kernel_create_task(pathserver);
+    if (pid < 0)
+        return;
+
+    task = task_get(pid);
+    task_set_priority(task, 0);
+    task_set_stack_size(task, PATH_STACK_SIZE);
+}
 
 inline int path_get_fd(struct object_pool *paths, struct path *path)
 {
