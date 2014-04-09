@@ -14,6 +14,7 @@
 #include "object-pool.h"
 #include "stack-pool.h"
 #include "first.h"
+#include "module.h"
 
 #ifdef USE_TASK_STAT_HOOK
 #include "task-stat-hook.h"
@@ -526,6 +527,8 @@ int main()
     list_init(&task->list);
     list_push(&ready_list[task->priority], &task->list);
     current_task = task;
+
+    module_run_init();
 
     while (1) {
         current_task->stack = activate(current_task->stack);
