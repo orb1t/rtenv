@@ -15,37 +15,6 @@
 void first()
 {
     if (!fork()) {
-        struct rlimit rlimit = {
-            .rlim_cur = 256 * 4
-        };
-
-        setrlimit(RLIMIT_STACK, &rlimit);
-        setpriority(0, 0);
-        pathserver();
-    }
-    if (!fork()) {
-        setpriority(0, 0);
-        romdev_driver();
-    }
-    if (!fork()) {
-        struct rlimit rlimit = {
-            .rlim_cur = 256 * 4
-        };
-
-        setrlimit(RLIMIT_STACK, &rlimit);
-        setpriority(0, 0);
-        romfs_server();
-    }
-    if (!fork()) {
-        struct rlimit rlimit = {
-            .rlim_cur = 256 * 4
-        };
-
-        setrlimit(RLIMIT_STACK, &rlimit);
-        setpriority(0, 0);
-        procfs_server();
-    }
-    if (!fork()) {
         setpriority(0, 0);
         serialout(USART2, USART2_IRQn);
     }
