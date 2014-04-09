@@ -8,7 +8,11 @@
 #include "path.h"
 #include "task.h"
 #include "file.h"
+#include "module.h"
+#include "kernel.h"
 
+
+#define PROCFS_STACK_SIZE 1024
 
 struct procfs_file {
     int fd;
@@ -16,6 +20,26 @@ struct procfs_file {
     int status;
     int priority;
 };
+
+
+void procfs_server();
+void procfs_module_init();
+
+MODULE_DECLARE(procfs, procfs_module_init);
+
+void procfs_module_init()
+{
+    int pid;
+    struct task_control_block *task;
+
+    pid = kernel_create_task(procfs_server);
+    if (pid < 0)
+        return;
+
+    task = task_get(pid);
+    task_set_priority(task, 2);
+    task_set_stack_size(task, PROCFS_STACK_SIZE);
+}
 
 void procfs_server()
 {
