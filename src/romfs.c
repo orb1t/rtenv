@@ -7,6 +7,10 @@
 #include "file.h"
 #include "string.h"
 #include "object-pool.h"
+#include "module.h"
+#include "kernel.h"
+
+#define ROMFS_STACK_SIZE 1024
 
 struct romfs_file {
     int fd;
@@ -23,6 +27,26 @@ struct romfs_entry {
     uint32_t len;
     uint8_t name[PATH_MAX];
 };
+
+
+void romfs_server();
+void romfs_module_init();
+
+MODULE_DECLARE(romfs, romfs_module_init);
+
+void romfs_module_init()
+{
+    int pid;
+    struct task_control_block *task;
+
+    pid = kernel_create_task(romfs_server);
+    if (pid < 0)
+        return;
+
+    task = task_get(pid);
+    task_set_priority(task, 2);
+    task_set_stack_size(task, ROMFS_STACK_SIZE);
+}
 
 int romfs_open_recur(int device, char *path, int this,
                      struct romfs_entry *entry)
