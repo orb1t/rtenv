@@ -14,6 +14,9 @@ SECTIONS
  		*(.text.*)
 		*(.rodata)
 		*(.rodata*)
+		_smodule = .;
+		*(.module)
+		_emodule = .;
 		_sromdev = .;
 		*(.rom.*)
 		_eromdev = .;
