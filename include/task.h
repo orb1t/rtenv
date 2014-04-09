@@ -48,5 +48,6 @@ struct task_control_block {
 };
 
 unsigned int *init_task(unsigned int *stack, void (*start)(), size_t stack_size);
+struct task_control_block *task_get(int pid);
 
 #endif
