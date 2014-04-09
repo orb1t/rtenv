@@ -98,6 +98,47 @@ unsigned int get_syscall_arg(struct user_thread_stack *stack, int n)
         return get_user_stack(stack)[n - 4 + 1];    /* 0 is reserved for r7 */
 }
 
+int kernel_create_task(void *func)
+{
+    size_t stack_size;
+    void *stack;
+    struct task_control_block *task;
+
+    /* Initialize first thread */
+    stack_size = STACK_DEFAULT_SIZE;
+    stack = stack_pool_allocate(&stack_pool, stack_size); /* unsigned int */
+    if (!stack)
+        return -1;
+
+    task = object_pool_allocate(&tasks);
+    if (!task) {
+        stack_pool_free(&stack_pool, stack);
+        return -1;
+    }
+
+    /* Setup stack */
+    task->stack_start = stack;
+    task->stack_end = stack + stack_size;
+    task->stack = task->stack_end - sizeof(struct user_thread_stack);
+
+    /* Exception return to user mode */
+    task->stack->_lr = 0xfffffffd;
+
+    /* Thumb instruction address must be odd */
+    task->stack->pc = (unsigned int )func | 1;
+
+    /* Set PSR to thumb */
+    task->stack->xpsr = 1 << 24;
+
+    task->pid = object_pool_find(&tasks, task);
+    task->priority = PRIORITY_DEFAULT;
+    task->exit_event = -1;
+    list_init(&task->list);
+    list_push(&ready_list[task->priority], &task->list);
+
+    return task->pid;
+}
+
 
 
 /* System calls */

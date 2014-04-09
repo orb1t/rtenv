@@ -6,4 +6,6 @@
 #include "event-monitor.h"
 #include <stddef.h>
 
+int kernel_create_task(void *func);
+
 #endif
