@@ -3,7 +3,26 @@
 #include "syscall.h"
 #include "block.h"
 #include "path.h"
+#include "module.h"
+#include "kernel.h"
 
+void romdev_driver();
+void romdev_module_init();
+
+MODULE_DECLARE(romdev, romdev_module_init);
+
+void romdev_module_init()
+{
+    int pid;
+    struct task_control_block *task;
+
+    pid = kernel_create_task(romdev_driver);
+    if (pid < 0)
+        return;
+
+    task = task_get(pid);
+    task_set_priority(task, 1);
+}
 
 void romdev_driver()
 {
