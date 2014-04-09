@@ -19,6 +19,21 @@ struct task_control_block *task_get(int pid)
     return object_pool_get(&tasks, pid);
 }
 
+int task_set_priority(struct task_control_block *task, int priority)
+{
+    extern struct list ready_list[];
+
+    if (!task || priority < 0 || PRIORITY_LIMIT < priority)
+        return -1;
+
+    task->priority = priority;
+    if (task->status == TASK_READY) {
+        list_push(&ready_list[task->priority], &task->list);
+    }
+
+    return priority;
+}
+
 int task_set_stack_size(struct task_control_block *task, size_t size)
 {
     extern struct stack_pool stack_pool;
