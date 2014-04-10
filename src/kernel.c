@@ -188,16 +188,65 @@ void kernel_fork()
     list_push(&ready_list[task->priority], &task->list);
 }
 
+void *kernel_exec_addr_copy(char *stack, char ***argv_ptr, int *argc_ptr)
+{
+    int argc;
+    char **argv;
+    char **argv_src;
+    char **argv_dst;
+    int i;
+    int len;
+
+    argv_src = *argv_ptr;
+
+    if (!argv_src) {
+        argv_src = (char *[]){NULL};
+    }
+
+    /* Count argv */
+    argv = argv_src;
+    for (argc = 0; *argv; argv++, argc++);
+
+    /* Copy argv to stack */
+    argv_dst = (char **)((unsigned int)stack & ~0x3) - (argc + 1);
+    stack = (void *)argv_dst;
+    for (i = 0; i < argc; stack = argv_dst[i], i++) {
+        len = strlen(argv_src[i]);
+        argv_dst[i] = (char *)((unsigned int)(stack - (len + 1)) & ~0x3);
+
+        memcpy(argv_dst[i], argv_src[i], len + 1);
+    }
+    /* Null terminated */
+    argv_dst[argc] = NULL;
+
+    *argc_ptr = argc;
+    *argv_ptr = argv_dst;
+
+    return stack;
+}
+
 void kernel_exec_addr()
 {
     unsigned int addr;
     unsigned int _lr;
+    int argc;
+    char **argv;
+    int envc;
+    char **envp;
+    void *stack;
 
     addr = current_task->stack->r0;
     _lr = current_task->stack->_lr;
+    argv = (void *)current_task->stack->r1;
+    envp = (void *)current_task->stack->r2;
+
+    /* Copy argv and envp */
+    stack = current_task->stack_end;
+    stack = kernel_exec_addr_copy(stack, &envp, &envc);
+    stack = kernel_exec_addr_copy(stack, &argv, &argc);
 
     /* Reset stack */
-    current_task->stack = current_task->stack_end
+    current_task->stack = (void *)((unsigned int)stack & ~0x7)
                         - sizeof(struct user_thread_stack);
 
     /* Reset program counter */
@@ -206,6 +255,12 @@ void kernel_exec_addr()
     current_task->stack->_lr = _lr;
     /* Setup terminating function */
     current_task->stack->lr = (unsigned int)exit | 1;
+    /* Set argc */
+    current_task->stack->r0 = argc;
+    /* Set argv */
+    current_task->stack->r1 = (unsigned int)argv;
+    /* Set envp */
+    current_task->stack->r2 = (unsigned int)envp;
     /* Set PSR to thumb */
     current_task->stack->xpsr = 1 << 24;
 }
