@@ -2,6 +2,7 @@
 style=linux
 
 # Padding
+pad-oper
 pad-header
 unpad-paren
 align-pointer=name
@@ -9,3 +10,6 @@ align-pointer=name
 # Bracket
 break-closing-brackets
 max-code-length=80
+
+# Indentation
+indent-preproc-define
