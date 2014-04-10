@@ -1,0 +1,3 @@
+/dev/rom0   /           romfs
+NULL        /proc/      proc
+NULL        /bin/       binfs
