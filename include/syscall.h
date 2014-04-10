@@ -27,3 +27,5 @@ void exit(int status);
 int waitpid(int pid, int *status, int options);
 
 void *mmap(void *addr, size_t len, int prot, int flags, int fd, int off);
+
+int exec_addr(void *addr, char *const argv[], char *const envp[]);

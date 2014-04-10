@@ -188,6 +188,28 @@ void kernel_fork()
     list_push(&ready_list[task->priority], &task->list);
 }
 
+void kernel_exec_addr()
+{
+    unsigned int addr;
+    unsigned int _lr;
+
+    addr = current_task->stack->r0;
+    _lr = current_task->stack->_lr;
+
+    /* Reset stack */
+    current_task->stack = current_task->stack_end
+                        - sizeof(struct user_thread_stack);
+
+    /* Reset program counter */
+    current_task->stack->pc = addr | 1;
+    /* Setup exception return */
+    current_task->stack->_lr = _lr;
+    /* Setup terminating function */
+    current_task->stack->lr = (unsigned int)exit | 1;
+    /* Set PSR to thumb */
+    current_task->stack->xpsr = 1 << 24;
+}
+
 void kernel_getpid()
 {
     current_task->stack->r0 = current_task->pid;
@@ -466,6 +488,7 @@ void (*syscall_table[])() = {
     kernel_exit,
     kernel_waitpid,
     kernel_mmap,
+    kernel_exec_addr,
 };
 
 
