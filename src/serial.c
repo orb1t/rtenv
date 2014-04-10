@@ -3,7 +3,13 @@
 #include "syscall.h"
 #include "file.h"
 #include "fifo.h"
+#include "program.h"
 
+void serial_out_main();
+void serial_in_main();
+
+PROGRAM_DECLARE(serialin, serial_in_main);
+PROGRAM_DECLARE(serialout, serial_out_main);
 
 
 void serialout(USART_TypeDef *uart, unsigned int intr)
@@ -37,6 +43,12 @@ void serialout(USART_TypeDef *uart, unsigned int intr)
     }
 }
 
+void serial_out_main()
+{
+    setpriority(0, 1);
+    serialout(USART2, USART2_IRQn);
+}
+
 void serialin(USART_TypeDef *uart, unsigned int intr)
 {
     int fd;
@@ -55,3 +67,8 @@ void serialin(USART_TypeDef *uart, unsigned int intr)
     }
 }
 
+void serial_in_main()
+{
+    setpriority(0, 1);
+    serialin(USART2, USART2_IRQn);
+}
