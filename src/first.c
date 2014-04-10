@@ -96,28 +96,46 @@ void first_mount()
     }
 }
 
+void first_load()
+{
+    int fd;
+    int try;
+    char path[PATH_MAX + 1];
+    char c;
+    int status;
+
+    try = 3;
+    while (try-- && (fd = open("/etc/inittab", 0)) < 0)
+        sleep(1);
+
+    if (fd < 0)
+        return;
+
+    c = ' ';
+    while (1) {
+        /* Read path */
+        if (read_str(fd, path, PATH_MAX, &c) <= 0)
+            break;
+
+        if (!fork()) {
+            while (execvpe(path, NULL, NULL) < 0)
+                sleep(1);
+        }
+
+        /* Skip until new line */
+        while (c != '\n' && (status = read(fd, &c, 1)) > 0);
+        if (status <= 0)
+            break;
+    }
+}
+
 void first()
 {
     mount("/dev/rom0", "/", ROMFS_TYPE, 0);
 
     first_mount();
 
-    if (!fork()) {
-        while (execvpe("/bin/serialin", NULL, NULL) < 0)
-            sleep(1);
-    }
-    if (!fork()) {
-        while (execvpe("/bin/serialout", NULL, NULL) < 0)
-            sleep(1);
-    }
-    if (!fork()) {
-        while (execvpe("/bin/output", NULL, NULL) < 0)
-            sleep(1);
-    }
-    if (!fork()) {
-        while (execvpe("/bin/shell", NULL, NULL) < 0)
-            sleep(1);
-    }
+    first_load();
 
     setpriority(0, PRIORITY_LIMIT);
 
