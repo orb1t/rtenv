@@ -96,8 +96,10 @@ void serial_test_task()
     int hint_length = sizeof(hint);
     char *p = NULL;
 
-    fdout = mq_open("/tmp/mqueue/out", 0);
-    fdin = open("/dev/tty0/in", 0);
+    while ((fdout = mq_open("/tmp/mqueue/out", 0)) < 0)
+        sleep(1);
+    while ((fdin = open("/dev/tty0/in", 0)) < 0)
+        sleep(1);
 
     for (;; cur_his = (cur_his + 1) % HISTORY_COUNT) {
         p = cmd[cur_his];
