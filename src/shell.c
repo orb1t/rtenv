@@ -6,6 +6,7 @@
 #include <ctype.h>
 #include "string.h"
 #include "program.h"
+#include "stdlib.h"
 
 #define MAX_CMDNAME 19
 #define MAX_ARGC 19
@@ -157,10 +158,11 @@ char *cmdtok(char *cmd)
 
 void check_keyword()
 {
-    char *argv[MAX_ARGC + 1] = {NULL};
+    char *argv[1 + MAX_ARGC + 1] = {NULL};
     char cmdstr[CMDBUF_SIZE];
     int argc = 1;
     int i;
+    char path[PATH_MAX + 1];
 
     find_events();
     fill_arg(cmdstr, cmd[cur_his]);
@@ -176,6 +178,7 @@ void check_keyword()
         if (argc >= MAX_ARGC)
             break;
     }
+    argv[argc] = NULL;
 
     for (i = 0; i < CMD_COUNT; i++) {
         if (!strcmp(argv[0], cmd_data[i].cmd)) {
@@ -183,10 +186,34 @@ void check_keyword()
             break;
         }
     }
-    if (i == CMD_COUNT) {
+    if (i != CMD_COUNT) {
+        return;
+    }
+
+    int child = fork();
+
+    if (child < 0) {
+        write(fdout, "No more thread can be allocated", 33);
+        write(fdout, next_line, 3);
+    }
+    else if (child) {
+        int status;
+        waitpid(child, &status, 0);
+    }
+    else {
+        /* Try full path */
+        execvpe(argv[0], argv, NULL);
+
+        /* Try /bin/ */
+        strcpy(path, "/bin/");
+        strcpy(path + 5, argv[0]);
+        execvpe(path, argv, NULL);
+
+        /* Error */
         write(fdout, argv[0], strlen(argv[0]) + 1);
         write(fdout, ": command not found", 20);
         write(fdout, next_line, 3);
+        exit(-1);
     }
 }
 
