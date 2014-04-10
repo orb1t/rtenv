@@ -48,7 +48,6 @@ enum {
     CMD_HELP,
     CMD_HISTORY,
     CMD_MAN,
-    CMD_PS,
     CMD_COUNT
 } CMD_TYPE;
 /* Structure for command handler. */
@@ -63,7 +62,6 @@ const hcmd_entry cmd_data[CMD_COUNT] = {
     [CMD_HELP] = {.cmd = "help", .func = show_cmd_info, .description = "List all commands you can use."},
     [CMD_HISTORY] = {.cmd = "history", .func = show_history, .description = "Show latest commands entered."},
     [CMD_MAN] = {.cmd = "man", .func = show_man_page, .description = "Manual pager."},
-    [CMD_PS] = {.cmd = "ps", .func = show_task_info, .description = "List all the processes."},
 };
 
 /* Structure for environment variables. */
@@ -317,62 +315,6 @@ void export_envvar(int argc, char *argv[])
             strcpy(env_var[env_count].name, argv[i]);
             strcpy(env_var[env_count].value, value);
             env_count++;
-        }
-    }
-}
-
-#define PS_PATH_LEN 16
-
-//ps
-void show_task_info(int argc, char *argv[])
-{
-    char ps_message[]="PID STATUS PRIORITY";
-    int ps_message_length = sizeof(ps_message);
-    char proc_path[PS_PATH_LEN];
-    int proc_file;
-    int task_i;
-    int pid;
-    int status;
-    int priority;
-
-    write(fdout, &ps_message , ps_message_length);
-    write(fdout, &next_line , 3);
-
-    for (task_i = 0; task_i < TASK_LIMIT; task_i++) {
-        char task_info_pid[2];
-        char task_info_status[2];
-        char task_info_priority[3];
-
-        strcpy(proc_path, "/proc/");
-        itoa(task_i, proc_path + strlen(proc_path), 10);
-        strcpy(proc_path + strlen(proc_path), "/stat");
-        proc_file = open(proc_path, 0);
-
-        if (proc_file != -1) {
-            lseek(proc_file, 0, SEEK_SET);
-            if (read(proc_file, &pid, sizeof(pid)) == -1)
-                continue;
-            if (read(proc_file, &status, sizeof(status)) == -1)
-                continue;
-            if (read(proc_file, &priority, sizeof(priority)) == -1)
-                continue;
-
-            task_info_pid[0]='0'+pid;
-            task_info_pid[1]='\0';
-            task_info_status[0]='0'+status;
-            task_info_status[1]='\0';
-
-            itoa(priority, task_info_priority, 10);
-
-            write(fdout, &task_info_pid , 2);
-            write_blank(3);
-            write(fdout, &task_info_status , 2);
-            write_blank(5);
-            write(fdout, &task_info_priority , 3);
-
-            write(fdout, &next_line , 3);
-
-            close(proc_file);
         }
     }
 }
