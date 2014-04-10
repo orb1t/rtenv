@@ -5,7 +5,7 @@
     __attribute__((section(".program"))) \
     struct program _program_##_name = { \
         .name = #_name, \
-        .main = _main \
+        .main = (void *)_main \
     }
 
 struct program {
