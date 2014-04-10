@@ -43,7 +43,6 @@ void show_xxd(int argc, char *argv[]);
 
 /* Enumeration for command types. */
 enum {
-    CMD_ECHO = 0,
     CMD_EXPORT,
     CMD_HELP,
     CMD_HISTORY,
@@ -57,7 +56,6 @@ typedef struct {
     char description[MAX_CMDHELP + 1];
 } hcmd_entry;
 const hcmd_entry cmd_data[CMD_COUNT] = {
-    [CMD_ECHO] = {.cmd = "echo", .func = show_echo, .description = "Show words you input."},
     [CMD_EXPORT] = {.cmd = "export", .func = export_envvar, .description = "Export environment variables."},
     [CMD_HELP] = {.cmd = "help", .func = show_cmd_info, .description = "List all commands you can use."},
     [CMD_HISTORY] = {.cmd = "history", .func = show_history, .description = "Show latest commands entered."},
@@ -354,30 +352,6 @@ void show_cmd_info(int argc, char *argv[])
         write(fdout, cmd_data[i].description, strlen(cmd_data[i].description) + 1);
         write(fdout, next_line, 3);
     }
-}
-
-//echo
-void show_echo(int argc, char *argv[])
-{
-    const int _n = 1; /* Flag for "-n" option. */
-    int flag = 0;
-    int i;
-
-    for (i = 1; i < argc; i++) {
-        if (!strcmp(argv[i], "-n"))
-            flag |= _n;
-        else
-            break;
-    }
-
-    for (; i < argc; i++) {
-        write(fdout, argv[i], strlen(argv[i]) + 1);
-        if (i < argc - 1)
-            write(fdout, " ", 2);
-    }
-
-    if (~flag & _n)
-        write(fdout, next_line, 3);
 }
 
 //man
