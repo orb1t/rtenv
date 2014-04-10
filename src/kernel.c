@@ -81,7 +81,7 @@ unsigned int *get_user_stack(struct user_thread_stack *stack)
     int reserved;
 
 #ifdef IGNORE_STACK_ALIGN
-    reserved = 1;
+    reserved = (stack->xpsr & (1 << 9));
 #else
     reserved = (stack->xpsr & (1 << 9)) && scb_ccr_get_stkalign();
 #endif
