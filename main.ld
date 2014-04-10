@@ -17,6 +17,9 @@ SECTIONS
 		_smodule = .;
 		*(.module)
 		_emodule = .;
+		_sprogram = .;
+		*(.program)
+		_eprogram = .;
 		_sromdev = .;
 		*(.rom.*)
 		_eromdev = .;
