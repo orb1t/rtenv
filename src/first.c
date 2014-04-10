@@ -10,6 +10,7 @@
 #include "serial.h"
 #include "output.h"
 #include "shell.h"
+#include "stdlib.h"
 
 
 void first()
@@ -19,24 +20,20 @@ void first()
     mount("", "/bin/", "binfs", 0);
 
     if (!fork()) {
-        setpriority(0, 0);
-        serialout(USART2, USART2_IRQn);
+        while (execvpe("/bin/serialin", NULL, NULL) < 0)
+            sleep(1);
     }
     if (!fork()) {
-        setpriority(0, 0);
-        serialin(USART2, USART2_IRQn);
+        while (execvpe("/bin/serialout", NULL, NULL) < 0)
+            sleep(1);
     }
     if (!fork()) {
-        rs232_xmit_msg_task();
+        while (execvpe("/bin/output", NULL, NULL) < 0)
+            sleep(1);
     }
     if (!fork()) {
-        struct rlimit rlimit = {
-            .rlim_cur = 512 * 4
-        };
-
-        setrlimit(RLIMIT_STACK, &rlimit);
-        setpriority(0, PRIORITY_DEFAULT - 10);
-        serial_test_task();
+        while (execvpe("/bin/shell", NULL, NULL) < 0)
+            sleep(1);
     }
 
     setpriority(0, PRIORITY_LIMIT);
