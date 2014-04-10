@@ -4,7 +4,7 @@
 #define IGNORE_STACK_ALIGN 1    /* QEMU always align to 8 bytes */
 
 /* Task */
-#define TASK_LIMIT 10  /* Max number of tasks we can handle */
+#define TASK_LIMIT 16  /* Max number of tasks we can handle */
 #define STACK_DEFAULT_SIZE 512
 
 /* Stack Chunk */
