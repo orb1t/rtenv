@@ -16,6 +16,7 @@ void first()
 {
     mount("/dev/rom0", "/", ROMFS_TYPE, 0);
     mount("", "/proc/", PROCFS_TYPE, 0);
+    mount("", "/bin/", "binfs", 0);
 
     if (!fork()) {
         setpriority(0, 0);
