@@ -4,6 +4,7 @@ target remote :3333
 set debug timestamp on
 set logging file build/gdb.txt
 set logging on
+set pagination off
 
 b Infinite_Loop
 b g_pfnVectors
