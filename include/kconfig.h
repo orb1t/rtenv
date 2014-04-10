@@ -54,6 +54,9 @@
 /* Proc file system */
 #define PROCFS_FILE_LIMIT TASK_LIMIT
 
+/* Bin file system */
+#define BINFS_FILE_LIMIT 2
+
 /* Interrupt */
 #define INTR_LIMIT 58 /* IRQn = [-15 ... 42] */
 
