@@ -9,6 +9,7 @@
 #define PATH_CMD_REGISTER_FS 4
 #define PATH_CMD_MOUNT 5
 #define PATH_CMD_CLOSE 6
+#define PATH_CMD_DEREGISTER_PATH 7
 
 #define path_write_data(dst, src, len, pos) \
 { \
@@ -18,6 +19,7 @@
 
 void pathserver();
 int path_register(const char *pathname);
+int path_deregister(const char *pathname);
 int path_register_fs(const char *type);
 int mount(const char *src, const char *dst, const char *type, int flags);
 

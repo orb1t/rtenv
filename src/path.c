@@ -186,6 +186,23 @@ void pathserver()
             write(replyfd, &newfd, 4);
             break;
 
+        case PATH_CMD_DEREGISTER_PATH:
+            read(PATHSERVER_FD, &plen, 4);
+            read(PATHSERVER_FD, pathname, plen);
+            status = -1;
+            /* Search for path */
+            object_pool_for_each (&paths, cursor, path) {
+                if (*path->name && strcmp(pathname, path->name) == 0) {
+                    if (path->driver == replyfd) {
+                        status = 0;
+                        object_pool_free(&paths, path);
+                    }
+                    break;
+                }
+            }
+            write(replyfd, &status, 4);
+            break;
+
         case PATH_CMD_REGISTER_FS:
             read(PATHSERVER_FD, &plen, 4);
             read(PATHSERVER_FD, fs_type, plen);
@@ -288,6 +305,26 @@ void pathserver()
 int path_register(const char *pathname)
 {
     int cmd = PATH_CMD_REGISTER_PATH;
+    unsigned int replyfd = getpid() + 3;
+    size_t plen = strlen(pathname)+1;
+    int fd = -1;
+    char buf[4+4+4+PATH_MAX];
+    int pos = 0;
+
+    path_write_data(buf, &cmd, 4, pos);
+    path_write_data(buf, &replyfd, 4, pos);
+    path_write_data(buf, &plen, 4, pos);
+    path_write_data(buf, pathname, plen, pos);
+
+    write(PATHSERVER_FD, buf, pos);
+    read(replyfd, &fd, 4);
+
+    return fd;
+}
+
+int path_deregister(const char *pathname)
+{
+    int cmd = PATH_CMD_DEREGISTER_PATH;
     unsigned int replyfd = getpid() + 3;
     size_t plen = strlen(pathname)+1;
     int fd = -1;
