@@ -126,7 +126,7 @@ int kernel_create_task(void *func)
     task->stack->_lr = 0xfffffffd;
 
     /* Thumb instruction address must be odd */
-    task->stack->pc = (unsigned int )func | 1;
+    task->stack->pc = (unsigned int)func | 1;
 
     /* Set PSR to thumb */
     task->stack->xpsr = 1 << 24;
@@ -200,7 +200,9 @@ void *kernel_exec_addr_copy(char *stack, char ***argv_ptr, int *argc_ptr)
     argv_src = *argv_ptr;
 
     if (!argv_src) {
-        argv_src = (char *[]){NULL};
+        argv_src = (char *[]) {
+            NULL
+        };
     }
 
     /* Count argv */
@@ -247,7 +249,7 @@ void kernel_exec_addr()
 
     /* Reset stack */
     current_task->stack = (void *)((unsigned int)stack & ~0x7)
-                        - sizeof(struct user_thread_stack);
+                          - sizeof(struct user_thread_stack);
 
     /* Reset program counter */
     current_task->stack->pc = addr | 1;
@@ -452,7 +454,7 @@ void kernel_setrlimit()
     if (resource == RLIMIT_STACK) {
         struct rlimit *rlimit = (void *)current_task->stack->r1;
         size_t used = current_task->stack_end
-                    - (void *)current_task->stack;
+                      - (void *)current_task->stack;
         size_t size = rlimit->rlim_cur;
         stack = stack_pool_relocate(&stack_pool, &size,
                                     current_task->stack_start);
@@ -491,7 +493,8 @@ void kernel_waitpid()
     if (task) {
         if (task->exit_event == -1) {
             /* Allocate if does not have one */
-            struct event *event = event_monitor_allocate(&event_monitor, exit_release, &task->status);
+            struct event *event = event_monitor_allocate(&event_monitor, exit_release,
+                                  &task->status);
             task->exit_event = event_monitor_find(&event_monitor, event);
         }
         if (task->exit_event != -1) {
@@ -624,7 +627,7 @@ int main()
                 syscall_table[syscall_number]();
             }
         }
-        else if (syscall_number < 0){
+        else if (syscall_number < 0) {
             kernel_interrupt_handler();
         }
 

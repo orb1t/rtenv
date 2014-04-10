@@ -62,7 +62,7 @@ void first_mount()
 
     try = 3;
     while (try-- && (fstab = open("/etc/fstab", 0)) < 0)
-        sleep(1);
+            sleep(1);
 
     if (fstab < 0)
         return;
@@ -106,7 +106,7 @@ void first_load()
 
     try = 3;
     while (try-- && (fd = open("/etc/inittab", 0)) < 0)
-        sleep(1);
+            sleep(1);
 
     if (fd < 0)
         return;

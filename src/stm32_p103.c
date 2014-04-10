@@ -17,7 +17,7 @@ void init_led(void)
      * between power and the microcontroller pin, which makes it turn on when
      * the pin is low.
      */
-    GPIO_WriteBit(GPIOC,GPIO_Pin_12,Bit_SET);
+    GPIO_WriteBit(GPIOC, GPIO_Pin_12, Bit_SET);
 
     /* Configure the LED pin as push-pull output. */
     GPIO_InitStructure.GPIO_Pin =  GPIO_Pin_12;

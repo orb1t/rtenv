@@ -15,9 +15,9 @@ PROGRAM_DECLARE(ps, ps);
 int ps(int argc, char *argv[])
 {
     int fdout;
-    char ps_message[]="PID STATUS PRIORITY";
+    char ps_message[] = "PID STATUS PRIORITY";
     int ps_message_length = sizeof(ps_message);
-    char next_line[3] = {'\n','\r','\0'};
+    char next_line[3] = {'\n', '\r', '\0'};
     char proc_path[PS_PATH_LEN];
     int proc_file;
     int task_i;
@@ -49,10 +49,10 @@ int ps(int argc, char *argv[])
             if (read(proc_file, &priority, sizeof(priority)) == -1)
                 continue;
 
-            task_info_pid[0]='0'+pid;
-            task_info_pid[1]='\0';
-            task_info_status[0]='0'+status;
-            task_info_status[1]='\0';
+            task_info_pid[0] = '0' + pid;
+            task_info_pid[1] = '\0';
+            task_info_status[0] = '0' + status;
+            task_info_status[1] = '\0';
 
             itoa(priority, task_info_priority, 10);
 

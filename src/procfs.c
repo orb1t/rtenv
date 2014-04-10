@@ -126,7 +126,7 @@ void procfs_server()
                 /* Find fd */
                 object_pool_for_each(&files, cursor, file) {
                     if (file->fd == target) {
-                        data = ((void*)file) + data_start;
+                        data = ((void *)file) + data_start;
 
                         /* Check boundary */
                         if (pos < 0) {

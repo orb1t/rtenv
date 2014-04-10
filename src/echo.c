@@ -13,7 +13,7 @@ PROGRAM_DECLARE(echo, echo);
 int echo(int argc, char *argv[])
 {
     int fdout;
-    char next_line[3] = {'\n','\r','\0'};
+    char next_line[3] = {'\n', '\r', '\0'};
     const int _n = 1; /* Flag for "-n" option. */
     int flag = 0;
     int i;

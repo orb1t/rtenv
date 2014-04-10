@@ -124,7 +124,8 @@ int regfile_driver_lseek(struct regfile *regfile, struct file_request *request,
     return request->size;
 }
 
-int regfile_driver_do_mmap(struct regfile *regfile, struct file_request *request,
+int regfile_driver_do_mmap(struct regfile *regfile,
+                           struct file_request *request,
                            struct event_monitor *monitor)
 {
     regfile->transfer_len = (int)request->buf;

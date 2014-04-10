@@ -47,8 +47,8 @@ mq_init(int fd, int driver_pid, struct file *files[],
 }
 
 int
-mq_deinit (struct file *file, struct file_request *request,
-           struct event_monitor *monitor)
+mq_deinit(struct file *file, struct file_request *request,
+          struct event_monitor *monitor)
 {
     struct pipe_ringbuffer *pipe =
         container_of(file, struct pipe_ringbuffer, file);
@@ -118,7 +118,7 @@ mq_read(struct file *file, struct file_request *request,
 
     /* Get length */
     for (i = 0; i < 4; i++) {
-        PIPE_POP(*pipe, *(((char *)&msg_len)+i));
+        PIPE_POP(*pipe, *(((char *)&msg_len) + i));
     }
     /* Copy data into buf */
     for (i = 0; i < msg_len; i++) {
@@ -140,10 +140,10 @@ mq_write(struct file *file, struct file_request *request,
 
     /* Copy count into pipe */
     for (i = 0; i < sizeof(size_t); i++)
-        PIPE_PUSH(*pipe,*(((char *)&request->size)+i));
+        PIPE_PUSH(*pipe, *(((char *)&request->size) + i));
     /* Copy data into pipe */
     for (i = 0; i < request->size; i++)
-        PIPE_PUSH(*pipe,request->buf[i]);
+        PIPE_PUSH(*pipe, request->buf[i]);
 
     /* Prepared to read */
     event_monitor_release(monitor, pipe->read_event);

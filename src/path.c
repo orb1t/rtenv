@@ -55,7 +55,7 @@ inline int path_get_fd(struct object_pool *paths, struct path *path)
         return -1;
 }
 
-inline struct path* path_get_by_fd(struct object_pool *paths, int fd)
+inline struct path *path_get_by_fd(struct object_pool *paths, int fd)
 {
     return object_pool_get(paths, fd - 3 - TASK_LIMIT);
 }
@@ -119,7 +119,7 @@ void pathserver()
             read(PATHSERVER_FD, &plen, 4);
             read(PATHSERVER_FD, pathname, plen);
             /* Search for path */
-            object_pool_for_each (&paths, cursor, path) {
+            object_pool_for_each(&paths, cursor, path) {
                 if (*path->name && strcmp(pathname, path->name) == 0) {
                     if (path->is_cache)
                         path->ref_count++;
@@ -191,7 +191,7 @@ void pathserver()
             read(PATHSERVER_FD, pathname, plen);
             status = -1;
             /* Search for path */
-            object_pool_for_each (&paths, cursor, path) {
+            object_pool_for_each(&paths, cursor, path) {
                 if (*path->name && strcmp(pathname, path->name) == 0) {
                     if (path->driver == replyfd) {
                         status = 0;
@@ -245,7 +245,7 @@ void pathserver()
 
             if (*src) {
                 /* Search for device */
-                object_pool_for_each (&paths, cursor, path) {
+                object_pool_for_each(&paths, cursor, path) {
                     if (*path->name && strcmp(src, path->name) == 0) {
                         break;
                     }
@@ -306,9 +306,9 @@ int path_register(const char *pathname)
 {
     int cmd = PATH_CMD_REGISTER_PATH;
     unsigned int replyfd = getpid() + 3;
-    size_t plen = strlen(pathname)+1;
+    size_t plen = strlen(pathname) + 1;
     int fd = -1;
-    char buf[4+4+4+PATH_MAX];
+    char buf[4 + 4 + 4 + PATH_MAX];
     int pos = 0;
 
     path_write_data(buf, &cmd, 4, pos);
@@ -326,9 +326,9 @@ int path_deregister(const char *pathname)
 {
     int cmd = PATH_CMD_DEREGISTER_PATH;
     unsigned int replyfd = getpid() + 3;
-    size_t plen = strlen(pathname)+1;
+    size_t plen = strlen(pathname) + 1;
     int fd = -1;
-    char buf[4+4+4+PATH_MAX];
+    char buf[4 + 4 + 4 + PATH_MAX];
     int pos = 0;
 
     path_write_data(buf, &cmd, 4, pos);
@@ -346,9 +346,9 @@ int path_register_fs(const char *type)
 {
     int cmd = PATH_CMD_REGISTER_FS;
     unsigned int replyfd = getpid() + 3;
-    size_t plen = strlen(type)+1;
+    size_t plen = strlen(type) + 1;
     int fd = -1;
-    char buf[4+4+4+PATH_MAX];
+    char buf[4 + 4 + 4 + PATH_MAX];
     int pos = 0;
 
     path_write_data(buf, &cmd, 4, pos);
@@ -366,7 +366,7 @@ int mount(const char *src, const char *dst, const char *type, int flags)
 {
     int cmd = PATH_CMD_MOUNT;
     unsigned int replyfd = getpid() + 3;
-    size_t slen = strlen(src)+1;
+    size_t slen = strlen(src) + 1;
     size_t dlen = strlen(dst) + 1;
     size_t tlen = strlen(type) + 1;
     int status;

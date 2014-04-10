@@ -223,7 +223,7 @@ void romfs_server()
                     }
                 }
                 if (object_pool_cursor_end(&files, cursor)) {
-                    mmap((void *)-1, 0, 0, 0, -1, 0);
+                    mmap((void *) - 1, 0, 0, 0, -1, 0);
                     break;
                 }
 

@@ -18,9 +18,9 @@
 #define MAX_ENVVALUE 63
 
 /*Global Variables*/
-char next_line[3] = {'\n','\r','\0'};
+char next_line[3] = {'\n', '\r', '\0'};
 char cmd[HISTORY_COUNT][CMDBUF_SIZE];
-int cur_his=0;
+int cur_his = 0;
 int fdout;
 int fdin;
 
@@ -86,7 +86,7 @@ void shell_init()
 
 void serial_test_task()
 {
-    char put_ch[2]= {'0','\0'};
+    char put_ch[2] = {'0', '\0'};
     char hint[] =  USER_NAME "@" USER_NAME "-STM32:~$ ";
     int hint_length = sizeof(hint);
     char *p = NULL;
@@ -329,8 +329,8 @@ void itoa(int n, char *dst, int base)
     else {
         unsigned int num = (base == 10 && num < 0) ? -n : n;
 
-        for (; num; num/=base)
-            *--p = "0123456789ABCDEF" [num % base];
+        for (; num; num /= base)
+            * --p = "0123456789ABCDEF" [num % base];
         if (base == 10 && n < 0)
             *--p = '-';
     }

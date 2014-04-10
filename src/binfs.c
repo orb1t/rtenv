@@ -130,7 +130,7 @@ void binfs_mmap(struct fs_request *request, struct object_pool *files)
         mmap(file->program->main, request->size, 0, 0, target, request->pos);
     }
     else {
-        mmap((void *)-1, 0, 0, 0, target, 0);
+        mmap((void *) - 1, 0, 0, 0, target, 0);
     }
 }
 

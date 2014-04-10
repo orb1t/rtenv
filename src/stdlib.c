@@ -42,7 +42,7 @@ int execvpe(const char *file, char *const argv[], char *const envp[])
 
     close(fd);
 
-    if (addr == (void *)-1)
+    if (addr == (void *) - 1)
         return -1;
 
     return exec_addr(addr, argv, envp);

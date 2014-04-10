@@ -96,8 +96,8 @@ void romdev_driver()
                 request_start = &_sromdev + pos;
                 request_end = request_start + size;
                 if (request_start < &_sromdev || request_start > &_eromdev
-                        || request_end < &_sromdev || request_end > &_eromdev)
-                    mmap((void *)-1, -1, 0, 0, fd, -1);
+                    || request_end < &_sromdev || request_end > &_eromdev)
+                    mmap((void *) - 1, -1, 0, 0, fd, -1);
 
                 /* Response */
                 mmap((void *)request_start, size, 0, 0, fd, 0);
