@@ -2,7 +2,10 @@
 #include "file.h"
 #include "mqueue.h"
 #include "syscall.h"
+#include "program.h"
 
+void rs232_xmit_msg_task();
+PROGRAM_DECLARE(output, rs232_xmit_msg_task);
 
 void rs232_xmit_msg_task()
 {
