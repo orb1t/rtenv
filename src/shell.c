@@ -5,6 +5,7 @@
 #include "syscall.h"
 #include <ctype.h>
 #include "string.h"
+#include "program.h"
 
 #define MAX_CMDNAME 19
 #define MAX_ARGC 19
@@ -27,6 +28,8 @@ void find_events();
 int fill_arg(char *const dest, const char *argv);
 void itoa(int n, char *dst, int base);
 void write_blank(int blank_num);
+void serial_test_task();
+void shell_init();
 
 /* Command handlers. */
 void export_envvar(int argc, char *argv[]);
@@ -72,6 +75,19 @@ typedef struct {
 evar_entry env_var[MAX_ENVCOUNT];
 int env_count = 0;
 
+
+PROGRAM_DECLARE(shell, shell_init);
+
+
+void shell_init()
+{
+    struct rlimit rlimit = {
+        .rlim_cur = 512 * 4
+    };
+
+    setrlimit(RLIMIT_STACK, &rlimit);
+    serial_test_task();
+}
 
 void serial_test_task()
 {
