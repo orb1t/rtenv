@@ -148,7 +148,7 @@ int regfile_request_readable(struct regfile *regfile,
 {
     struct task_control_block *task = request->task;
 
-    if (regfile->request_pid == 0) {
+    if (regfile->request_pid == -1) {
         /* try to send request */
         struct file *driver = regfile->driver_file;
         int size = request->size;
@@ -197,7 +197,7 @@ int regfile_request_writable(struct regfile *regfile,
 {
     struct task_control_block *task = request->task;
 
-    if (regfile->request_pid == 0) {
+    if (regfile->request_pid == -1) {
         /* try to send request */
         struct file *driver = regfile->driver_file;
         int size = request->size;
@@ -240,7 +240,7 @@ int regfile_request_lseekable(struct regfile *regfile,
 {
     struct task_control_block *task = request->task;
 
-    if (regfile->request_pid == 0) {
+    if (regfile->request_pid == -1) {
         /* try to send request */
         struct file *driver = regfile->driver_file;
         int size = request->size;
@@ -295,7 +295,7 @@ int regfile_request_mmap(struct regfile *regfile,
 {
     struct task_control_block *task = request->task;
 
-    if (regfile->request_pid == 0) {
+    if (regfile->request_pid == -1) {
         /* try to send request */
         struct file *driver = regfile->driver_file;
 
@@ -319,7 +319,7 @@ int regfile_request_mmap(struct regfile *regfile,
         }
     }
     else if (regfile->request_pid == task->pid && !regfile->buzy) {
-        regfile->request_pid = 0;
+        regfile->request_pid = -1;
         return regfile->transfer_len;
     }
 
@@ -336,7 +336,7 @@ int regfile_request_read(struct regfile *regfile, struct file_request *request,
         regfile->pos += regfile->transfer_len;
     }
 
-    regfile->request_pid = 0;
+    regfile->request_pid = -1;
     return regfile->transfer_len;
 }
 
@@ -348,7 +348,7 @@ int regfile_request_write(struct regfile *regfile,
         regfile->pos += regfile->transfer_len;
     }
 
-    regfile->request_pid = 0;
+    regfile->request_pid = -1;
     return regfile->transfer_len;
 }
 
@@ -360,7 +360,7 @@ int regfile_request_lseek(struct regfile *regfile,
         regfile->pos = regfile->transfer_len;
     }
 
-    regfile->request_pid = 0;
+    regfile->request_pid = -1;
     return regfile->transfer_len;
 }
 
@@ -397,7 +397,7 @@ int regfile_init(int fd, int driver_pid, struct file *files[],
 
     regfile->driver_pid = driver_pid;
     regfile->driver_file = files[driver_pid + 3];
-    regfile->request_pid = 0;
+    regfile->request_pid = -1;
     regfile->buzy = 0;
     regfile->pos = 0;
     regfile->file.ops = &regfile_ops;
