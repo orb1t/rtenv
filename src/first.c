@@ -14,6 +14,9 @@
 
 void first()
 {
+    mount("/dev/rom0", "/", ROMFS_TYPE, 0);
+    mount("", "/proc/", PROCFS_TYPE, 0);
+
     if (!fork()) {
         setpriority(0, 0);
         serialout(USART2, USART2_IRQn);
@@ -36,9 +39,6 @@ void first()
     }
 
     setpriority(0, PRIORITY_LIMIT);
-
-    mount("/dev/rom0", "/", ROMFS_TYPE, 0);
-    mount("", "/proc/", PROCFS_TYPE, 0);
 
     while (1);
 }
